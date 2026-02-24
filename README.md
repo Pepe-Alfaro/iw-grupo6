@@ -1,5 +1,5 @@
 # iw-grupo6
-##Integrantes:
+## Integrantes:
 -José Alfaro Gómez
 -Carlos Chaves Romero
 -Elías Martínez López
