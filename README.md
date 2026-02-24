@@ -1,2 +1,7 @@
 # iw-grupo6
-Compra-Venta de productos
+##Integrantes:
+-José Alfaro Gómez
+-Carlos Chaves Romero
+-Elías Martínez López
+-Marcos Palomero García
+-Jorge Muñiz Madassery
