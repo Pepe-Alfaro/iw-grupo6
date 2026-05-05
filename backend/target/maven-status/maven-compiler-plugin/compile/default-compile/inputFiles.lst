@@ -1,0 +1,15 @@
+/home/pepe/Escritorio/Pepe/iw-trabajo/backend/src/main/java/com/c2c/market/config/DataInitializer.java
+/home/pepe/Escritorio/Pepe/iw-trabajo/backend/src/main/java/com/c2c/market/entity/Product.java
+/home/pepe/Escritorio/Pepe/iw-trabajo/backend/src/main/java/com/c2c/market/entity/User.java
+/home/pepe/Escritorio/Pepe/iw-trabajo/backend/src/main/java/com/c2c/market/repository/BidRepository.java
+/home/pepe/Escritorio/Pepe/iw-trabajo/backend/src/main/java/com/c2c/market/entity/Transaction.java
+/home/pepe/Escritorio/Pepe/iw-trabajo/backend/src/main/java/com/c2c/market/C2cMarketApplication.java
+/home/pepe/Escritorio/Pepe/iw-trabajo/backend/src/main/java/com/c2c/market/service/AuctionSchedulerService.java
+/home/pepe/Escritorio/Pepe/iw-trabajo/backend/src/main/java/com/c2c/market/service/NotificationService.java
+/home/pepe/Escritorio/Pepe/iw-trabajo/backend/src/main/java/com/c2c/market/repository/UserRepository.java
+/home/pepe/Escritorio/Pepe/iw-trabajo/backend/src/main/java/com/c2c/market/controller/ProductController.java
+/home/pepe/Escritorio/Pepe/iw-trabajo/backend/src/main/java/com/c2c/market/config/SecurityConfig.java
+/home/pepe/Escritorio/Pepe/iw-trabajo/backend/src/main/java/com/c2c/market/repository/TransactionRepository.java
+/home/pepe/Escritorio/Pepe/iw-trabajo/backend/src/main/java/com/c2c/market/entity/Bid.java
+/home/pepe/Escritorio/Pepe/iw-trabajo/backend/src/main/java/com/c2c/market/controller/AuthController.java
+/home/pepe/Escritorio/Pepe/iw-trabajo/backend/src/main/java/com/c2c/market/repository/ProductRepository.java
