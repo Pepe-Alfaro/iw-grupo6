@@ -6,7 +6,8 @@ const CreateProductModal = ({ currentUser, onClose, onProductCreated }) => {
     description: '',
     condition: 'NEW',
     saleType: 'FIXED_PRICE',
-    basePrice: ''
+    basePrice: '',
+    imageUrl: ''
   });
 
   const handleSubmit = async (e) => {
@@ -84,6 +85,12 @@ const CreateProductModal = ({ currentUser, onClose, onProductCreated }) => {
             <label className="block text-sm font-medium text-gray-700 mb-1">Precio Base (€)</label>
             <input type="number" required min="1" step="0.01" className="w-full p-3 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
               value={formData.basePrice} onChange={e => setFormData({...formData, basePrice: e.target.value})} />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">URL de la Foto</label>
+            <input type="url" placeholder="https://ejemplo.com/foto.jpg" className="w-full p-3 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
+              value={formData.imageUrl} onChange={e => setFormData({...formData, imageUrl: e.target.value})} />
           </div>
 
           <div className="flex gap-3 mt-4">

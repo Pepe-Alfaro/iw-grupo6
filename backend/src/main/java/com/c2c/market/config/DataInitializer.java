@@ -25,6 +25,13 @@ public class DataInitializer {
                 demoUser.setRole("CLIENT");
                 userRepository.save(demoUser);
 
+                User moderatorUser = new User();
+                moderatorUser.setUsername("moderator");
+                moderatorUser.setEmail("mod@c2c.com");
+                moderatorUser.setPasswordHash("dummy_hash");
+                moderatorUser.setRole("MODERATOR");
+                userRepository.save(moderatorUser);
+
                 Product p1 = new Product();
                 p1.setTitle("MacBook Pro M2");
                 p1.setDescription("Casi nuevo, poco uso.");
@@ -35,6 +42,7 @@ public class DataInitializer {
                 p1.setStatus("ACTIVE");
                 p1.setEndTime(ZonedDateTime.now().plusHours(2));
                 p1.setSeller(demoUser);
+                p1.setImageUrl("https://images.unsplash.com/photo-1517336714731-489689fd1ca8?auto=format&fit=crop&w=500&q=60");
                 productRepository.save(p1);
 
                 Product p2 = new Product();
@@ -46,6 +54,7 @@ public class DataInitializer {
                 p2.setCurrentPrice(new BigDecimal("280.00"));
                 p2.setStatus("ACTIVE");
                 p2.setSeller(demoUser);
+                p2.setImageUrl("https://images.unsplash.com/photo-1618366712010-f4ae9c647dcb?auto=format&fit=crop&w=500&q=60");
                 productRepository.save(p2);
             }
         };

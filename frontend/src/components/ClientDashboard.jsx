@@ -121,8 +121,12 @@ const ClientDashboard = ({ currentUser, onLogout }) => {
       <section className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
         {products.map(product => (
           <div key={product.id} className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100 hover:shadow-md transition group">
-            <div className="h-48 bg-gradient-to-br from-gray-100 to-gray-200 relative flex items-center justify-center">
-               <span className="text-gray-400 font-medium">Sin Imagen</span>
+            <div className="h-48 bg-gradient-to-br from-gray-100 to-gray-200 relative flex items-center justify-center overflow-hidden">
+               {product.imageUrl ? (
+                 <img src={product.imageUrl} alt={product.title} className="w-full h-full object-cover" />
+               ) : (
+                 <span className="text-gray-400 font-medium">Sin Imagen</span>
+               )}
                <span className={`absolute top-2 right-2 text-white text-xs font-bold px-3 py-1 rounded-full shadow-sm ${product.saleType === 'AUCTION' ? 'bg-red-500' : 'bg-green-500'}`}>
                  {product.saleType === 'AUCTION' ? 'SUBASTA' : 'COMPRA DIRECTA'}
                </span>

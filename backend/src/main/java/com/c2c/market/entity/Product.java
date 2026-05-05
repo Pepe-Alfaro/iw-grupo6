@@ -30,11 +30,16 @@ public class Product {
     @Column(name = "end_time")
     private ZonedDateTime endTime;
 
+    @Column(name = "image_url")
+    private String imageUrl; // For the product photo
+
     @ManyToOne
     @JoinColumn(name = "seller_id")
     private User seller;
 
     // Getters and Setters
+    public String getImageUrl() { return imageUrl; }
+    public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 

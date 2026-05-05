@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-const ModeratorPanel = () => {
+const ModeratorPanel = ({ currentUser, onLogout }) => {
   const [activeTab, setActiveTab] = useState('alerts'); // alerts, reports, users
 
   return (
@@ -28,14 +28,22 @@ const ModeratorPanel = () => {
             👥 Gestión de Usuarios
           </button>
         </nav>
-        <div className="pt-4 border-t border-gray-700">
+        <div className="pt-4 border-t border-gray-700 flex flex-col gap-3">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-purple-500 rounded-full flex items-center justify-center font-bold">M</div>
+            <div className="w-10 h-10 bg-purple-500 rounded-full flex items-center justify-center font-bold">
+              {currentUser?.username?.charAt(0).toUpperCase() || 'M'}
+            </div>
             <div>
-              <p className="text-sm font-semibold">Moderador 01</p>
+              <p className="text-sm font-semibold">@{currentUser?.username}</p>
               <p className="text-xs text-gray-400">Panel de Control</p>
             </div>
           </div>
+          <button 
+            onClick={onLogout}
+            className="w-full px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg transition text-sm"
+          >
+            Cerrar Sesión
+          </button>
         </div>
       </aside>
 
