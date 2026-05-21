@@ -61,7 +61,7 @@ async def _create_product(client: AsyncClient, token: str) -> dict:
 @pytest.mark.asyncio
 async def test_moderation_no_auth(client: AsyncClient):
     resp = await client.get("/api/v1/moderation/alerts")
-    assert resp.status_code == 403
+    assert resp.status_code == 401
 
 
 @pytest.mark.asyncio

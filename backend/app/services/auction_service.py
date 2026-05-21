@@ -2,7 +2,7 @@ from datetime import datetime
 from decimal import Decimal
 
 from fastapi import HTTPException
-from sqlmodel import select
+from sqlalchemy import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.models.auction import Auction, Bid
@@ -11,18 +11,18 @@ from app.models.product import Product, ProductStatus
 
 
 async def get_auction(product_id: int, session: AsyncSession) -> Auction:
-    result = await session.exec(select(Auction).where(Auction.product_id == product_id))
-    auction = result.first()
+    result = await session.execute(select(Auction).where(Auction.product_id == product_id))
+    auction = result.scalars().first()
     if not auction:
         raise HTTPException(status_code=404, detail="Subasta no encontrada")
     return auction
 
 
 async def place_bid(product_id: int, amount: Decimal, bidder_id: int, session: AsyncSession) -> Bid:
-    result = await session.exec(
+    result = await session.execute(
         select(Auction).where(Auction.product_id == product_id).with_for_update()
     )
-    auction = result.first()
+    auction = result.scalars().first()
     if not auction:
         raise HTTPException(status_code=404, detail="Subasta no encontrada")
     if auction.is_closed or datetime.utcnow() > auction.ends_at:

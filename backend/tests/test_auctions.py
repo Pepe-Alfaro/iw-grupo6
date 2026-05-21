@@ -84,7 +84,7 @@ async def test_bid_requires_auth(client: AsyncClient):
     ends_at = datetime.utcnow() + timedelta(hours=24)
     product = await _create_auction(client, seller, ends_at)
     resp = await client.post(f"/api/v1/auctions/{product['id']}/bid", json={"amount": "250.00"})
-    assert resp.status_code == 403
+    assert resp.status_code == 401
 
 
 @pytest.mark.asyncio

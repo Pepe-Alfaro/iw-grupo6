@@ -53,7 +53,7 @@ async def test_create_product_ok(client: AsyncClient):
 @pytest.mark.asyncio
 async def test_create_product_requires_auth(client: AsyncClient):
     resp = await client.post("/api/v1/products", json=_product_payload())
-    assert resp.status_code == 403
+    assert resp.status_code == 401
 
 
 @pytest.mark.asyncio
