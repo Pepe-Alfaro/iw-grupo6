@@ -6,6 +6,7 @@ import { BottomNav } from '../../components/layout/BottomNav'
 import { ProductCard, SkeletonCard } from '../../components/ProductCard'
 import { Button } from '../../components/ui/Button'
 import { Badge } from '../../components/ui/Badge'
+import { ReviewModal } from '../../components/ReviewModal'
 import { useProducts } from '../../hooks/useProducts'
 import { usersApi } from '../../api/usersApi'
 import { useAuthStore } from '../../store/authStore'
@@ -62,10 +63,13 @@ export default function Profile() {
   const profileId = (id === 'me' || !id) ? currentUser?.id : Number(id)
   const isOwn = currentUser?.id === profileId
 
+  type Tx = Order & { role: 'buyer' | 'seller'; product?: { id: number; title: string } | null }
+
   const [user, setUser] = useState<User | null>(null)
   const [userLoading, setUserLoading] = useState(true)
-  const [transactions, setTransactions] = useState<(Order & { role: 'buyer' | 'seller'; product?: { id: number; title: string } | null })[]>([])
+  const [transactions, setTransactions] = useState<Tx[]>([])
   const [tab, setTab] = useState(0)
+  const [reviewTarget, setReviewTarget] = useState<Tx | null>(null)
 
   const { data: listingsData, loading: listingsLoading } = useProducts(
     profileId ? { seller_id: profileId, size: 20 } : {}
@@ -199,38 +203,71 @@ export default function Profile() {
                 <p className="text-ink-600 text-sm mt-1">Tus compras y ventas aparecerán aquí</p>
               </div>
             ) : (
-              transactions.map((tx) => (
-                <div
-                  key={tx.id}
-                  className="bg-white rounded-card border border-ink-200 px-5 py-4 flex items-center gap-4 cursor-pointer hover:border-brand transition-colors"
-                  onClick={() => navigate(`/products/${tx.product_id}`)}
-                >
-                  <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-none
-                    ${tx.role === 'seller' ? 'bg-brand-tint text-brand' : 'bg-amber-50 text-amber-600'}`}>
-                    {tx.role === 'seller' ? <Package size={16} strokeWidth={1.5} /> : <ShoppingBag size={16} strokeWidth={1.5} />}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[14px] font-semibold text-ink-900 truncate">
-                      {tx.product?.title ?? `Producto #${tx.product_id}`}
-                    </p>
-                    <p className="text-[12px] text-ink-400 mt-0.5">
-                      {tx.role === 'seller' ? 'Venta' : 'Compra'} · {fmtDate(tx.created_at)}
-                    </p>
-                  </div>
-                  <div className="text-right flex-none">
-                    <p className="text-[15px] font-bold text-ink-900">{fmtPrice(tx.amount)}</p>
-                    <div className="mt-1">
+              transactions.map((tx) => {
+                const canReview = tx.status === 'paid' && (
+                  tx.role === 'buyer' ? !tx.buyer_reviewed : !tx.seller_reviewed
+                )
+                return (
+                  <div
+                    key={tx.id}
+                    className="bg-white rounded-card border border-ink-200 px-5 py-4 flex items-center gap-4 hover:border-brand transition-colors"
+                  >
+                    <div
+                      className={`w-9 h-9 rounded-full flex items-center justify-center flex-none cursor-pointer
+                        ${tx.role === 'seller' ? 'bg-brand-tint text-brand' : 'bg-amber-50 text-amber-600'}`}
+                      onClick={() => navigate(`/products/${tx.product_id}`)}
+                    >
+                      {tx.role === 'seller' ? <Package size={16} strokeWidth={1.5} /> : <ShoppingBag size={16} strokeWidth={1.5} />}
+                    </div>
+                    <div className="flex-1 min-w-0 cursor-pointer" onClick={() => navigate(`/products/${tx.product_id}`)}>
+                      <p className="text-[14px] font-semibold text-ink-900 truncate">
+                        {tx.product?.title ?? `Producto #${tx.product_id}`}
+                      </p>
+                      <p className="text-[12px] text-ink-400 mt-0.5">
+                        {tx.role === 'seller' ? 'Venta' : 'Compra'} · {fmtDate(tx.created_at)}
+                      </p>
+                    </div>
+                    <div className="text-right flex-none flex flex-col items-end gap-1.5">
+                      <p className="text-[15px] font-bold text-ink-900">{fmtPrice(tx.amount)}</p>
                       <OrderBadge status={tx.status} />
+                      {canReview && (
+                        <Button
+                          kind="outlineBrand"
+                          size="sm"
+                          icon={<Star size={12} strokeWidth={1.5} />}
+                          onClick={() => setReviewTarget(tx)}
+                        >
+                          Valorar
+                        </Button>
+                      )}
                     </div>
                   </div>
-                </div>
-              ))
+                )
+              })
             )}
           </div>
         )}
       </main>
 
       <div className="md:hidden"><BottomNav /></div>
+
+      {reviewTarget && (
+        <ReviewModal
+          open={!!reviewTarget}
+          onClose={() => setReviewTarget(null)}
+          order={reviewTarget}
+          alreadyReviewed={reviewTarget.role === 'buyer' ? reviewTarget.buyer_reviewed : reviewTarget.seller_reviewed}
+          onSuccess={() => {
+            setTransactions((prev) =>
+              prev.map((tx) =>
+                tx.id === reviewTarget.id
+                  ? { ...tx, buyer_reviewed: tx.role === 'buyer' ? true : tx.buyer_reviewed, seller_reviewed: tx.role === 'seller' ? true : tx.seller_reviewed }
+                  : tx
+              )
+            )
+          }}
+        />
+      )}
     </div>
   )
 }
