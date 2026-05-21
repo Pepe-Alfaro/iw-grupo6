@@ -1,13 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 from sqlmodel.ext.asyncio.session import AsyncSession
-from sqlmodel import select as sa_select
 
 from app.core.database import get_session
 from app.core.dependencies import require_moderator
-from app.models.price_alert import PriceAlert
-from app.models.product import Product, ProductCategory, ProductImage, ProductStatus
 from app.models.user import User
+from app.services import moderation_service
 
 router = APIRouter(prefix="/moderation", tags=["moderation"])
 
@@ -21,48 +19,7 @@ async def list_alerts(
     session: AsyncSession = Depends(get_session),
     _mod: User = Depends(require_moderator),
 ):
-    alerts = (
-        await session.execute(
-            sa_select(PriceAlert)
-            .where(PriceAlert.resolved == False)  # noqa: E712
-            .order_by(PriceAlert.created_at.desc())
-        )
-    ).scalars().all()
-
-    result = []
-    for alert in alerts:
-        product = await session.get(Product, alert.product_id)
-        seller = await session.get(User, product.seller_id) if product else None
-        main_img = (
-            await session.execute(
-                sa_select(ProductImage)
-                .where(ProductImage.product_id == alert.product_id)
-                .limit(1)
-            )
-        ).scalar_one_or_none()
-        cats = (
-            await session.execute(
-                sa_select(ProductCategory).where(ProductCategory.product_id == alert.product_id)
-            )
-        ).scalars().all()
-
-        result.append({
-            "id": alert.id,
-            "product_id": alert.product_id,
-            "deviation_pct": round(alert.deviation_pct, 1),
-            "created_at": alert.created_at.isoformat(),
-            "product": {
-                "id": product.id,
-                "title": product.title,
-                "price": str(product.price),
-                "status": product.status,
-                "main_image_url": main_img.url if main_img else None,
-                "categories": [c.category for c in cats],
-                "seller_username": seller.username if seller else None,
-            } if product else None,
-        })
-
-    return result
+    return await moderation_service.list_alerts(session)
 
 
 @router.patch("/alerts/{alert_id}")
@@ -72,25 +29,7 @@ async def resolve_alert(
     session: AsyncSession = Depends(get_session),
     mod: User = Depends(require_moderator),
 ):
-    if body.resolution not in ("approved", "rejected"):
-        raise HTTPException(status_code=400, detail="resolution debe ser 'approved' o 'rejected'")
-
-    alert = await session.get(PriceAlert, alert_id)
-    if not alert:
-        raise HTTPException(status_code=404, detail="Alerta no encontrada")
-
-    product = await session.get(Product, alert.product_id)
-    if product and product.status == ProductStatus.PENDING_REVIEW:
-        product.status = ProductStatus.ACTIVE if body.resolution == "approved" else ProductStatus.REMOVED
-        session.add(product)
-
-    alert.resolved = True
-    alert.resolution = body.resolution
-    alert.resolved_by = mod.id
-    session.add(alert)
-    await session.commit()
-
-    return {"id": alert.id, "resolution": alert.resolution}
+    return await moderation_service.resolve_alert(alert_id, body.resolution, mod.id, session)
 
 
 @router.get("/products")
@@ -98,25 +37,7 @@ async def list_all_products(
     session: AsyncSession = Depends(get_session),
     _mod: User = Depends(require_moderator),
 ):
-    products = (
-        await session.execute(
-            sa_select(Product).order_by(Product.created_at.desc()).limit(200)
-        )
-    ).scalars().all()
-
-    result = []
-    for p in products:
-        seller = await session.get(User, p.seller_id)
-        result.append({
-            "id": p.id,
-            "title": p.title,
-            "price": str(p.price),
-            "status": p.status,
-            "sale_type": p.sale_type,
-            "created_at": p.created_at.isoformat(),
-            "seller_username": seller.username if seller else None,
-        })
-    return result
+    return await moderation_service.list_all_products(session)
 
 
 @router.delete("/products/{product_id}", status_code=204)
@@ -125,9 +46,4 @@ async def remove_product(
     session: AsyncSession = Depends(get_session),
     _mod: User = Depends(require_moderator),
 ):
-    product = await session.get(Product, product_id)
-    if not product:
-        raise HTTPException(status_code=404, detail="Producto no encontrado")
-    product.status = ProductStatus.REMOVED
-    session.add(product)
-    await session.commit()
+    await moderation_service.remove_product(product_id, session)
