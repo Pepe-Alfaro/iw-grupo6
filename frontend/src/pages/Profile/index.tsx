@@ -1,0 +1,236 @@
+import { useState, useEffect } from 'react'
+import { useParams, useNavigate } from 'react-router-dom'
+import { Star, Package, ShoppingBag, AlertCircle, Edit3 } from 'lucide-react'
+import { Navbar } from '../../components/layout/Navbar'
+import { BottomNav } from '../../components/layout/BottomNav'
+import { ProductCard, SkeletonCard } from '../../components/ProductCard'
+import { Button } from '../../components/ui/Button'
+import { Badge } from '../../components/ui/Badge'
+import { useProducts } from '../../hooks/useProducts'
+import { usersApi } from '../../api/usersApi'
+import { useAuthStore } from '../../store/authStore'
+import { fmtPrice, fmtDate } from '../../utils/format'
+import type { User, Order } from '../../types'
+
+// ─── Stars display ────────────────────────────────────────────────────────────
+function StarRating({ rating }: { rating: number }) {
+  return (
+    <div className="flex items-center gap-0.5">
+      {Array.from({ length: 5 }).map((_, i) => (
+        <Star
+          key={i}
+          size={14}
+          strokeWidth={1.5}
+          className={i < Math.round(rating) ? 'fill-amber500 stroke-amber500' : 'stroke-ink-300 fill-transparent'}
+        />
+      ))}
+    </div>
+  )
+}
+
+// ─── Order status badge ───────────────────────────────────────────────────────
+function OrderBadge({ status }: { status: string }) {
+  if (status === 'paid') return <Badge tone="successSoft">Completado</Badge>
+  if (status === 'cancelled') return <Badge tone="dangerSoft">Cancelado</Badge>
+  return <Badge tone="amberSoft">Pendiente</Badge>
+}
+
+// ─── Tab bar ──────────────────────────────────────────────────────────────────
+function Tabs({ tabs, active, onChange }: { tabs: string[]; active: number; onChange: (i: number) => void }) {
+  return (
+    <div className="flex border-b border-ink-200 gap-0 mb-6">
+      {tabs.map((t, i) => (
+        <button
+          key={t}
+          onClick={() => onChange(i)}
+          className={`px-5 py-3 text-[14px] font-medium border-b-2 -mb-px transition-colors
+            ${active === i ? 'border-brand text-brand' : 'border-transparent text-ink-600 hover:text-ink-900'}`}
+        >
+          {t}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+// ─── Main ─────────────────────────────────────────────────────────────────────
+export default function Profile() {
+  const { id } = useParams<{ id: string }>()
+  const navigate = useNavigate()
+  const currentUser = useAuthStore((s) => s.user)
+
+  const profileId = (id === 'me' || !id) ? currentUser?.id : Number(id)
+  const isOwn = currentUser?.id === profileId
+
+  const [user, setUser] = useState<User | null>(null)
+  const [userLoading, setUserLoading] = useState(true)
+  const [transactions, setTransactions] = useState<(Order & { role: 'buyer' | 'seller'; product?: { id: number; title: string } | null })[]>([])
+  const [tab, setTab] = useState(0)
+
+  const { data: listingsData, loading: listingsLoading } = useProducts(
+    profileId ? { seller_id: profileId, size: 20 } : {}
+  )
+
+  useEffect(() => {
+    if (!profileId) return
+    setUserLoading(true)
+    usersApi.get(profileId)
+      .then((r) => setUser(r.data))
+      .catch(() => setUser(null))
+      .finally(() => setUserLoading(false))
+  }, [profileId])
+
+  useEffect(() => {
+    if (!isOwn) return
+    usersApi.myTransactions().then((r) => setTransactions(r.data)).catch(() => null)
+  }, [isOwn])
+
+  if (!profileId) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4">
+        <AlertCircle size={48} strokeWidth={1} className="text-ink-400" />
+        <p className="text-ink-600">Inicia sesión para ver tu perfil</p>
+        <Button kind="outlineBrand" onClick={() => navigate('/auth')}>Iniciar sesión</Button>
+      </div>
+    )
+  }
+
+  if (userLoading) return (
+    <div className="min-h-screen flex flex-col bg-ink-50">
+      <div className="hidden md:block"><Navbar /></div>
+      <div className="md:hidden"><Navbar mobile /></div>
+      <main className="flex-1 max-w-[1280px] mx-auto w-full px-4 md:px-8 py-8">
+        <div className="skeleton h-40 rounded-card mb-6" />
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {Array.from({ length: 8 }).map((_, i) => <SkeletonCard key={i} />)}
+        </div>
+      </main>
+    </div>
+  )
+
+  if (!user) return (
+    <div className="min-h-screen flex flex-col items-center justify-center gap-4">
+      <AlertCircle size={48} strokeWidth={1} className="text-ink-400" />
+      <p className="text-xl font-semibold text-ink-900">Usuario no encontrado</p>
+      <Button kind="outlineBrand" onClick={() => navigate(-1)}>Volver</Button>
+    </div>
+  )
+
+  const tabs = isOwn ? ['Mis anuncios', 'Transacciones'] : ['Anuncios']
+
+  return (
+    <div className="min-h-screen flex flex-col bg-ink-50">
+      <div className="hidden md:block"><Navbar /></div>
+      <div className="md:hidden"><Navbar mobile /></div>
+
+      <main className="flex-1 max-w-[1280px] mx-auto w-full px-4 md:px-8 py-8">
+        {/* Profile header */}
+        <div className="bg-white rounded-card border border-ink-200 p-6 mb-6 shadow-card">
+          <div className="flex items-start gap-5">
+            <div className="w-20 h-20 rounded-full bg-brand text-white text-[28px] font-bold flex items-center justify-center flex-none">
+              {user.full_name[0].toUpperCase()}
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-3 flex-wrap">
+                <h1 className="text-[22px] font-bold text-ink-900">{user.full_name}</h1>
+                {user.role === 'moderator' && <Badge tone="brand">Moderador</Badge>}
+              </div>
+              <p className="text-[14px] text-ink-600 mt-0.5">@{user.username}</p>
+              <div className="flex items-center gap-3 mt-2 flex-wrap">
+                <div className="flex items-center gap-1.5">
+                  <StarRating rating={user.avg_rating} />
+                  <span className="text-[13px] font-semibold text-ink-900">{user.avg_rating.toFixed(1)}</span>
+                  <span className="text-[12px] text-ink-400">({user.total_reviews} valoraciones)</span>
+                </div>
+                <span className="text-ink-200">·</span>
+                <div className="flex items-center gap-1 text-[12px] text-ink-600">
+                  <Package size={12} strokeWidth={1.5} />
+                  {listingsData?.total ?? 0} anuncios
+                </div>
+                <span className="text-ink-200">·</span>
+                <span className="text-[12px] text-ink-400">Miembro desde {fmtDate(user.created_at)}</span>
+              </div>
+            </div>
+            {isOwn && (
+              <Button kind="outline" size="sm" icon={<Edit3 size={13} strokeWidth={1.5} />}>
+                Editar
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {/* Tabs */}
+        <Tabs tabs={tabs} active={tab} onChange={setTab} />
+
+        {/* Tab: listings */}
+        {tab === 0 && (
+          <>
+            {listingsLoading ? (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {Array.from({ length: 8 }).map((_, i) => <SkeletonCard key={i} />)}
+              </div>
+            ) : listingsData?.items.length === 0 ? (
+              <div className="text-center py-20">
+                <div className="text-5xl mb-4">📭</div>
+                <p className="text-xl font-semibold text-ink-900">Sin anuncios activos</p>
+                {isOwn && (
+                  <Button className="mt-6" onClick={() => navigate('/publish')}>
+                    Publicar primer anuncio
+                  </Button>
+                )}
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {listingsData?.items.map((p) => (
+                  <ProductCard key={p.id} product={p} wished={false} />
+                ))}
+              </div>
+            )}
+          </>
+        )}
+
+        {/* Tab: transactions (own profile only) */}
+        {tab === 1 && isOwn && (
+          <div className="space-y-3">
+            {transactions.length === 0 ? (
+              <div className="text-center py-20">
+                <div className="text-5xl mb-4">🛍</div>
+                <p className="text-xl font-semibold text-ink-900">Sin transacciones</p>
+                <p className="text-ink-600 text-sm mt-1">Tus compras y ventas aparecerán aquí</p>
+              </div>
+            ) : (
+              transactions.map((tx) => (
+                <div
+                  key={tx.id}
+                  className="bg-white rounded-card border border-ink-200 px-5 py-4 flex items-center gap-4 cursor-pointer hover:border-brand transition-colors"
+                  onClick={() => navigate(`/products/${tx.product_id}`)}
+                >
+                  <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-none
+                    ${tx.role === 'seller' ? 'bg-brand-tint text-brand' : 'bg-amber-50 text-amber-600'}`}>
+                    {tx.role === 'seller' ? <Package size={16} strokeWidth={1.5} /> : <ShoppingBag size={16} strokeWidth={1.5} />}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[14px] font-semibold text-ink-900 truncate">
+                      {tx.product?.title ?? `Producto #${tx.product_id}`}
+                    </p>
+                    <p className="text-[12px] text-ink-400 mt-0.5">
+                      {tx.role === 'seller' ? 'Venta' : 'Compra'} · {fmtDate(tx.created_at)}
+                    </p>
+                  </div>
+                  <div className="text-right flex-none">
+                    <p className="text-[15px] font-bold text-ink-900">{fmtPrice(tx.amount)}</p>
+                    <div className="mt-1">
+                      <OrderBadge status={tx.status} />
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        )}
+      </main>
+
+      <div className="md:hidden"><BottomNav /></div>
+    </div>
+  )
+}
