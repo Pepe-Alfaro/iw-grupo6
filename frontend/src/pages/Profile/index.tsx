@@ -1,17 +1,20 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Star, Package, ShoppingBag, AlertCircle, Edit3 } from 'lucide-react'
+import { Star, Package, ShoppingBag, AlertCircle, Edit3, CreditCard } from 'lucide-react'
 import { Navbar } from '../../components/layout/Navbar'
 import { BottomNav } from '../../components/layout/BottomNav'
 import { ProductCard, SkeletonCard } from '../../components/ProductCard'
 import { Button } from '../../components/ui/Button'
 import { Badge } from '../../components/ui/Badge'
+import { useToast } from '../../components/ui/Toast'
 import { ReviewModal } from '../../components/ReviewModal'
 import { useProducts } from '../../hooks/useProducts'
 import { usersApi } from '../../api/usersApi'
+import { ordersApi } from '../../api/ordersApi'
+import { reviewsApi } from '../../api/reviewsApi'
 import { useAuthStore } from '../../store/authStore'
 import { fmtPrice, fmtDate } from '../../utils/format'
-import type { User, Order } from '../../types'
+import type { User, Order, Review } from '../../types'
 
 // ─── Stars display ────────────────────────────────────────────────────────────
 function StarRating({ rating }: { rating: number }) {
@@ -54,10 +57,39 @@ function Tabs({ tabs, active, onChange }: { tabs: string[]; active: number; onCh
   )
 }
 
+// ─── Review card ──────────────────────────────────────────────────────────────
+function ReviewCard({ review }: { review: Review }) {
+  return (
+    <div className="bg-white rounded-card border border-ink-200 p-4">
+      <div className="flex items-start gap-3">
+        <div className="w-9 h-9 rounded-full bg-brand text-white text-[14px] font-bold flex items-center justify-center flex-none">
+          {review.reviewer?.full_name?.[0]?.toUpperCase() ?? '?'}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-[13px] font-semibold text-ink-900">
+              @{review.reviewer?.username ?? 'Usuario'}
+            </span>
+            <StarRating rating={review.rating} />
+            <span className="text-[11px] text-ink-400 ml-auto">{fmtDate(review.created_at)}</span>
+          </div>
+          {review.comment && (
+            <p className="text-[13px] text-ink-600 mt-1.5 leading-relaxed">{review.comment}</p>
+          )}
+          {review.product && (
+            <p className="text-[11px] text-ink-400 mt-2">Producto: {review.product.title}</p>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ─── Main ─────────────────────────────────────────────────────────────────────
 export default function Profile() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const toast = useToast()
   const currentUser = useAuthStore((s) => s.user)
 
   const profileId = (id === 'me' || !id) ? currentUser?.id : Number(id)
@@ -68,12 +100,18 @@ export default function Profile() {
   const [user, setUser] = useState<User | null>(null)
   const [userLoading, setUserLoading] = useState(true)
   const [transactions, setTransactions] = useState<Tx[]>([])
+  const [reviews, setReviews] = useState<Review[]>([])
+  const [reviewsLoading, setReviewsLoading] = useState(false)
   const [tab, setTab] = useState(0)
   const [reviewTarget, setReviewTarget] = useState<Tx | null>(null)
+  const [payingId, setPayingId] = useState<number | null>(null)
 
   const { data: listingsData, loading: listingsLoading } = useProducts(
     profileId ? { seller_id: profileId, size: 20 } : {}
   )
+
+  const tabs = isOwn ? ['Mis anuncios', 'Transacciones', 'Valoraciones'] : ['Anuncios', 'Valoraciones']
+  const reviewsTabIdx = isOwn ? 2 : 1
 
   useEffect(() => {
     if (!profileId) return
@@ -88,6 +126,30 @@ export default function Profile() {
     if (!isOwn) return
     usersApi.myTransactions().then((r) => setTransactions(r.data)).catch(() => null)
   }, [isOwn])
+
+  useEffect(() => {
+    if (tab !== reviewsTabIdx || !profileId) return
+    setReviewsLoading(true)
+    reviewsApi.getUserReviews(profileId)
+      .then((r) => setReviews(r.data))
+      .catch(() => null)
+      .finally(() => setReviewsLoading(false))
+  }, [tab, reviewsTabIdx, profileId])
+
+  async function handlePay(orderId: number) {
+    setPayingId(orderId)
+    try {
+      await ordersApi.pay(orderId)
+      setTransactions((prev) =>
+        prev.map((tx) => tx.id === orderId ? { ...tx, status: 'paid' as const } : tx)
+      )
+      toast({ kind: 'success', title: 'Pago confirmado', body: 'El pedido ha sido marcado como completado.' })
+    } catch {
+      toast({ kind: 'error', title: 'Error al procesar el pago' })
+    } finally {
+      setPayingId(null)
+    }
+  }
 
   if (!profileId) {
     return (
@@ -119,8 +181,6 @@ export default function Profile() {
       <Button kind="outlineBrand" onClick={() => navigate(-1)}>Volver</Button>
     </div>
   )
-
-  const tabs = isOwn ? ['Mis anuncios', 'Transacciones'] : ['Anuncios']
 
   return (
     <div className="min-h-screen flex flex-col bg-ink-50">
@@ -207,6 +267,7 @@ export default function Profile() {
                 const canReview = tx.status === 'paid' && (
                   tx.role === 'buyer' ? !tx.buyer_reviewed : !tx.seller_reviewed
                 )
+                const canPay = tx.role === 'buyer' && tx.status === 'pending'
                 return (
                   <div
                     key={tx.id}
@@ -230,6 +291,17 @@ export default function Profile() {
                     <div className="text-right flex-none flex flex-col items-end gap-1.5">
                       <p className="text-[15px] font-bold text-ink-900">{fmtPrice(tx.amount)}</p>
                       <OrderBadge status={tx.status} />
+                      {canPay && (
+                        <Button
+                          kind="primary"
+                          size="sm"
+                          icon={<CreditCard size={12} strokeWidth={1.5} />}
+                          loading={payingId === tx.id}
+                          onClick={() => handlePay(tx.id)}
+                        >
+                          Pagar
+                        </Button>
+                      )}
                       {canReview && (
                         <Button
                           kind="outlineBrand"
@@ -247,6 +319,25 @@ export default function Profile() {
             )}
           </div>
         )}
+
+        {/* Tab: reviews */}
+        {tab === reviewsTabIdx && (
+          <div className="space-y-3">
+            {reviewsLoading ? (
+              Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="skeleton h-20 rounded-card" />
+              ))
+            ) : reviews.length === 0 ? (
+              <div className="text-center py-20">
+                <div className="text-5xl mb-4">⭐</div>
+                <p className="text-xl font-semibold text-ink-900">Sin valoraciones aún</p>
+                <p className="text-ink-600 text-sm mt-1">Las valoraciones de otros usuarios aparecerán aquí</p>
+              </div>
+            ) : (
+              reviews.map((r) => <ReviewCard key={r.id} review={r} />)
+            )}
+          </div>
+        )}
       </main>
 
       <div className="md:hidden"><BottomNav /></div>
@@ -261,7 +352,11 @@ export default function Profile() {
             setTransactions((prev) =>
               prev.map((tx) =>
                 tx.id === reviewTarget.id
-                  ? { ...tx, buyer_reviewed: tx.role === 'buyer' ? true : tx.buyer_reviewed, seller_reviewed: tx.role === 'seller' ? true : tx.seller_reviewed }
+                  ? {
+                      ...tx,
+                      buyer_reviewed: tx.role === 'buyer' ? true : tx.buyer_reviewed,
+                      seller_reviewed: tx.role === 'seller' ? true : tx.seller_reviewed,
+                    }
                   : tx
               )
             )

@@ -83,6 +83,7 @@ export default function ProductDetail() {
   const [bidLoading, setBidLoading] = useState(false)
   const [wished, setWished] = useState(false)
   const [wishItemId, setWishItemId] = useState<number | null>(null)
+  const [activeImgId, setActiveImgId] = useState<number | null>(null)
 
   useEffect(() => {
     if (product?.sale_type === 'auction') {
@@ -115,8 +116,10 @@ export default function ProductDetail() {
 
   // product is non-null past the early return above; closures need an explicit const
   const prod = product
+  const isSeller = user?.id === prod.seller_id
   const isAuction = prod.sale_type === 'auction'
   const mainImage = prod.images?.find((i) => i.is_main) ?? prod.images?.[0]
+  const displayImage = activeImgId != null ? prod.images?.find((i) => i.id === activeImgId) : mainImage
 
   async function handleBid() {
     if (!user) { navigate('/auth'); return }
@@ -222,7 +225,7 @@ export default function ProductDetail() {
               {auction.current_bidder_id ? `Último pujador activo` : 'Sin pujas todavía'}
             </p>
           )}
-          {!auction?.is_closed && (
+          {!auction?.is_closed && !isSeller && (
             <div className="space-y-2">
               <input
                 type="number"
@@ -240,6 +243,9 @@ export default function ProductDetail() {
               </div>
             </div>
           )}
+          {!auction?.is_closed && isSeller && (
+            <p className="text-[13px] text-ink-400 text-center py-2">Este es tu anuncio</p>
+          )}
         </div>
       ) : (
         /* ── Fixed price block ── */
@@ -248,12 +254,20 @@ export default function ProductDetail() {
             <p className="text-[32px] font-bold text-brand-dark">{fmtPrice(product.price)}</p>
             <p className="text-[12px] text-ink-400">IVA incluido</p>
           </div>
-          <Button className="w-full" size="xl" onClick={handleBuyNow}>
-            Comprar ahora
-          </Button>
-          <Button kind="outlineBrand" className="w-full" size="lg" icon={<Heart size={16} strokeWidth={1.5} className={wished ? 'fill-brand stroke-brand' : ''} />} onClick={handleToggleWish}>
-            {wished ? 'Guardado' : 'Añadir a Wishlist'}
-          </Button>
+          {isSeller ? (
+            <div className="p-3 rounded-lg bg-ink-50 border border-ink-200 text-center text-[13px] text-ink-600">
+              Este es tu anuncio
+            </div>
+          ) : (
+            <Button className="w-full" size="xl" onClick={handleBuyNow}>
+              Comprar ahora
+            </Button>
+          )}
+          {!isSeller && (
+            <Button kind="outlineBrand" className="w-full" size="lg" icon={<Heart size={16} strokeWidth={1.5} className={wished ? 'fill-brand stroke-brand' : ''} />} onClick={handleToggleWish}>
+              {wished ? 'Guardado' : 'Añadir a Wishlist'}
+            </Button>
+          )}
         </div>
       )}
 
@@ -291,8 +305,8 @@ export default function ProductDetail() {
           {/* Images */}
           <div className="mb-6 md:mb-0">
             <div className="rounded-card overflow-hidden bg-ink-100 aspect-square w-full">
-              {mainImage ? (
-                <img src={mainImage.url} alt={product.title} className="w-full h-full object-cover" />
+              {displayImage ? (
+                <img src={displayImage.url} alt={product.title} className="w-full h-full object-cover" />
               ) : (
                 <div className="w-full h-full bg-gradient-to-br from-brand-tint to-ink-100 flex items-center justify-center text-6xl">
                   📦
@@ -301,11 +315,19 @@ export default function ProductDetail() {
             </div>
             {product.images && product.images.length > 1 && (
               <div className="flex gap-2 mt-3">
-                {product.images.map((img) => (
-                  <div key={img.id} className="w-16 h-16 rounded-lg overflow-hidden border-2 border-transparent hover:border-brand cursor-pointer">
-                    <img src={img.url} alt="" className="w-full h-full object-cover" />
-                  </div>
-                ))}
+                {product.images.map((img) => {
+                  const isActive = activeImgId === img.id || (activeImgId == null && img.id === mainImage?.id)
+                  return (
+                    <div
+                      key={img.id}
+                      onClick={() => setActiveImgId(img.id)}
+                      className={`w-16 h-16 rounded-lg overflow-hidden border-2 cursor-pointer transition-colors
+                        ${isActive ? 'border-brand' : 'border-transparent hover:border-brand/40'}`}
+                    >
+                      <img src={img.url} alt="" className="w-full h-full object-cover" />
+                    </div>
+                  )
+                })}
               </div>
             )}
           </div>
@@ -318,14 +340,16 @@ export default function ProductDetail() {
       </main>
 
       {/* Mobile sticky bottom bar */}
-      <div className="md:hidden sticky bottom-16 bg-white border-t border-ink-200 px-4 py-3 flex items-center gap-3">
-        <span className={`text-xl font-bold ${isAuction ? 'text-amber500' : 'text-brand-dark'}`}>
-          {fmtPrice(isAuction ? (auction?.current_bid ?? product.price) : product.price)}
-        </span>
-        <Button className="flex-1" size="lg" kind={isAuction ? 'amber' : 'primary'} onClick={isAuction ? handleBid : handleBuyNow}>
-          {isAuction ? 'Pujar ahora' : 'Comprar ahora'}
-        </Button>
-      </div>
+      {!isSeller && (
+        <div className="md:hidden sticky bottom-16 bg-white border-t border-ink-200 px-4 py-3 flex items-center gap-3">
+          <span className={`text-xl font-bold ${isAuction ? 'text-amber500' : 'text-brand-dark'}`}>
+            {fmtPrice(isAuction ? (auction?.current_bid ?? product.price) : product.price)}
+          </span>
+          <Button className="flex-1" size="lg" kind={isAuction ? 'amber' : 'primary'} onClick={isAuction ? handleBid : handleBuyNow}>
+            {isAuction ? 'Pujar ahora' : 'Comprar ahora'}
+          </Button>
+        </div>
+      )}
 
       <div className="md:hidden"><BottomNav /></div>
     </div>
