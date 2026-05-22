@@ -423,7 +423,7 @@ export default function ProductDetail() {
 
           {/* Right col */}
           <div>
-            <RightColumn />
+            {RightColumn()}
           </div>
         </div>
       </main>
