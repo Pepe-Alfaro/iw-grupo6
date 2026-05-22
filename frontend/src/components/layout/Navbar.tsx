@@ -154,7 +154,7 @@ export function Navbar({ mobile = false }: NavbarProps) {
                   <DropdownItem
                     icon={<Settings size={15} strokeWidth={1.5} />}
                     label="Ajustes"
-                    onClick={() => { navigate('/profile/me?tab=settings'); setMenuOpen(false) }}
+                    onClick={() => { navigate('/settings'); setMenuOpen(false) }}
                   />
                   {user.role === 'moderator' && (
                     <DropdownItem

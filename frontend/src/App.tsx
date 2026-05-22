@@ -10,6 +10,7 @@ import Messages from './pages/Messages'
 import Wishlist from './pages/Wishlist'
 import Auth from './pages/Auth'
 import Moderation from './pages/Moderation'
+import Settings from './pages/Settings'
 import type { ReactNode } from 'react'
 
 function RequireAuth({ children }: { children: ReactNode }) {
@@ -56,6 +57,14 @@ export default function App() {
             element={
               <RequireAuth>
                 <Wishlist />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/settings"
+            element={
+              <RequireAuth>
+                <Settings />
               </RequireAuth>
             }
           />
