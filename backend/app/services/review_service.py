@@ -50,8 +50,10 @@ async def create_review(
     reviewed_user = await session.get(User, reviewed_id)
     if reviewed_user:
         existing_reviews = (
-            await session.execute(sa_select(Review).where(Review.reviewed_id == reviewed_id))
-        ).scalars().all()
+            (await session.execute(sa_select(Review).where(Review.reviewed_id == reviewed_id)))
+            .scalars()
+            .all()
+        )
         all_ratings = [r.rating for r in existing_reviews] + [rating]
         reviewed_user.avg_rating = round(sum(all_ratings) / len(all_ratings), 2)
         reviewed_user.total_reviews = len(all_ratings)
@@ -72,28 +74,36 @@ async def create_review(
 
 async def get_user_reviews(user_id: int, session: AsyncSession) -> list:
     reviews = (
-        await session.execute(
-            sa_select(Review)
-            .where(Review.reviewed_id == user_id)
-            .order_by(Review.created_at.desc())
+        (
+            await session.execute(
+                sa_select(Review)
+                .where(Review.reviewed_id == user_id)
+                .order_by(Review.created_at.desc())
+            )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
 
     result = []
     for r in reviews:
         reviewer = await session.get(User, r.reviewer_id)
-        result.append({
-            "id": r.id,
-            "order_id": r.order_id,
-            "reviewer_id": r.reviewer_id,
-            "rating": r.rating,
-            "comment": r.comment,
-            "created_at": r.created_at.isoformat(),
-            "reviewer": {
-                "id": reviewer.id,
-                "username": reviewer.username,
-                "full_name": reviewer.full_name,
-                "avatar_url": reviewer.avatar_url,
-            } if reviewer else None,
-        })
+        result.append(
+            {
+                "id": r.id,
+                "order_id": r.order_id,
+                "reviewer_id": r.reviewer_id,
+                "rating": r.rating,
+                "comment": r.comment,
+                "created_at": r.created_at.isoformat(),
+                "reviewer": {
+                    "id": reviewer.id,
+                    "username": reviewer.username,
+                    "full_name": reviewer.full_name,
+                    "avatar_url": reviewer.avatar_url,
+                }
+                if reviewer
+                else None,
+            }
+        )
     return result

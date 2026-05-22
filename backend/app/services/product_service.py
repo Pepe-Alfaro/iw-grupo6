@@ -3,7 +3,8 @@ from datetime import datetime
 from decimal import Decimal
 
 from fastapi import HTTPException
-from sqlalchemy import func, select as sa_select
+from sqlalchemy import func
+from sqlalchemy import select as sa_select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.core.config import settings
@@ -38,14 +39,22 @@ async def enrich(products: list[Product], session: AsyncSession) -> list[dict]:
     seller_ids = list({p.seller_id for p in products})
 
     imgs = (
-        await session.execute(sa_select(ProductImage).where(ProductImage.product_id.in_(ids)))
-    ).scalars().all()
+        (await session.execute(sa_select(ProductImage).where(ProductImage.product_id.in_(ids))))
+        .scalars()
+        .all()
+    )
     cats = (
-        await session.execute(sa_select(ProductCategory).where(ProductCategory.product_id.in_(ids)))
-    ).scalars().all()
+        (
+            await session.execute(
+                sa_select(ProductCategory).where(ProductCategory.product_id.in_(ids))
+            )
+        )
+        .scalars()
+        .all()
+    )
     sellers = (
-        await session.execute(sa_select(User).where(User.id.in_(seller_ids)))
-    ).scalars().all()
+        (await session.execute(sa_select(User).where(User.id.in_(seller_ids)))).scalars().all()
+    )
 
     imgs_by_id: dict[int, list] = defaultdict(list)
     for img in imgs:
@@ -63,7 +72,9 @@ async def enrich(products: list[Product], session: AsyncSession) -> list[dict]:
             "price": str(p.price),
             "images": imgs_by_id[p.id],
             "categories": cats_by_id[p.id],
-            "seller": _user_public(sellers_by_id[p.seller_id]) if p.seller_id in sellers_by_id else None,
+            "seller": _user_public(sellers_by_id[p.seller_id])
+            if p.seller_id in sellers_by_id
+            else None,
         }
         for p in products
     ]
@@ -82,21 +93,23 @@ async def _compute_median_deviation(
         .scalar_subquery()
     )
     prices = (
-        await session.execute(
-            sa_select(Product.price).where(
-                Product.id.in_(subq),
-                Product.status == ProductStatus.ACTIVE,
+        (
+            await session.execute(
+                sa_select(Product.price).where(
+                    Product.id.in_(subq),
+                    Product.status == ProductStatus.ACTIVE,
+                )
             )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     if not prices:
         return None
     sorted_prices = sorted(float(p) for p in prices)
     n = len(sorted_prices)
     median = (
-        sorted_prices[n // 2]
-        if n % 2
-        else (sorted_prices[n // 2 - 1] + sorted_prices[n // 2]) / 2
+        sorted_prices[n // 2] if n % 2 else (sorted_prices[n // 2 - 1] + sorted_prices[n // 2]) / 2
     )
     if median == 0:
         return None
@@ -144,19 +157,21 @@ async def list_products(
     else:
         order = Product.created_at.desc()
 
-    total = (
-        await session.execute(sa_select(func.count(Product.id)).where(*conds))
-    ).scalar_one()
+    total = (await session.execute(sa_select(func.count(Product.id)).where(*conds))).scalar_one()
 
     products = (
-        await session.execute(
-            sa_select(Product)
-            .where(*conds)
-            .order_by(order)
-            .offset((page - 1) * size)
-            .limit(size)
+        (
+            await session.execute(
+                sa_select(Product)
+                .where(*conds)
+                .order_by(order)
+                .offset((page - 1) * size)
+                .limit(size)
+            )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
 
     items = await enrich(list(products), session)
     return {"items": items, "total": total, "page": page, "size": size, "pages": -(-total // size)}

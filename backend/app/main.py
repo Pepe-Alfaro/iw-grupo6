@@ -3,8 +3,8 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.api import auctions, auth, messages, moderation, orders, products, reviews, users, wishlist
 from app.core.config import settings
-from app.api import auth, products, auctions, orders, messages, wishlist, reviews, users, moderation
 from app.tasks.auction_adjudicator import start_scheduler, stop_scheduler
 
 

@@ -9,7 +9,12 @@ from app.models.user import User
 
 
 def _fmt_user(u: User) -> dict:
-    return {"id": u.id, "username": u.username, "full_name": u.full_name, "avatar_url": u.avatar_url}
+    return {
+        "id": u.id,
+        "username": u.username,
+        "full_name": u.full_name,
+        "avatar_url": u.avatar_url,
+    }
 
 
 def _fmt_message(m: Message) -> dict:
@@ -25,22 +30,28 @@ def _fmt_message(m: Message) -> dict:
 
 async def list_conversations(current_user_id: int, session: AsyncSession) -> list:
     convs = (
-        await session.execute(
-            sa_select(Conversation)
-            .where(
-                or_(
-                    Conversation.participant_a_id == current_user_id,
-                    Conversation.participant_b_id == current_user_id,
+        (
+            await session.execute(
+                sa_select(Conversation)
+                .where(
+                    or_(
+                        Conversation.participant_a_id == current_user_id,
+                        Conversation.participant_b_id == current_user_id,
+                    )
                 )
+                .order_by(Conversation.created_at.desc())
             )
-            .order_by(Conversation.created_at.desc())
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
 
     result = []
     for conv in convs:
         other_id = (
-            conv.participant_b_id if conv.participant_a_id == current_user_id else conv.participant_a_id
+            conv.participant_b_id
+            if conv.participant_a_id == current_user_id
+            else conv.participant_a_id
         )
         other_user = await session.get(User, other_id)
         if not other_user:
@@ -56,28 +67,34 @@ async def list_conversations(current_user_id: int, session: AsyncSession) -> lis
         ).scalar_one_or_none()
 
         unread = (
-            await session.execute(
-                sa_select(Message).where(
-                    Message.conversation_id == conv.id,
-                    Message.sender_id != current_user_id,
-                    Message.read == False,  # noqa: E712
+            (
+                await session.execute(
+                    sa_select(Message).where(
+                        Message.conversation_id == conv.id,
+                        Message.sender_id != current_user_id,
+                        Message.read == False,  # noqa: E712
+                    )
                 )
             )
-        ).scalars().all()
+            .scalars()
+            .all()
+        )
 
         product = await session.get(Product, conv.product_id) if conv.product_id else None
 
-        result.append({
-            "id": conv.id,
-            "participant_a_id": conv.participant_a_id,
-            "participant_b_id": conv.participant_b_id,
-            "product_id": conv.product_id,
-            "created_at": conv.created_at.isoformat(),
-            "other_user": _fmt_user(other_user),
-            "last_message": _fmt_message(last_msg) if last_msg else None,
-            "unread_count": len(unread),
-            "product_title": product.title if product else None,
-        })
+        result.append(
+            {
+                "id": conv.id,
+                "participant_a_id": conv.participant_a_id,
+                "participant_b_id": conv.participant_b_id,
+                "product_id": conv.product_id,
+                "created_at": conv.created_at.isoformat(),
+                "other_user": _fmt_user(other_user),
+                "last_message": _fmt_message(last_msg) if last_msg else None,
+                "unread_count": len(unread),
+                "product_title": product.title if product else None,
+            }
+        )
 
     return result
 
@@ -124,12 +141,16 @@ async def list_messages(conversation_id: int, current_user_id: int, session: Asy
         raise HTTPException(status_code=403, detail="Sin acceso")
 
     msgs = (
-        await session.execute(
-            sa_select(Message)
-            .where(Message.conversation_id == conversation_id)
-            .order_by(Message.sent_at.asc())
+        (
+            await session.execute(
+                sa_select(Message)
+                .where(Message.conversation_id == conversation_id)
+                .order_by(Message.sent_at.asc())
+            )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
 
     return [_fmt_message(m) for m in msgs]
 
@@ -165,14 +186,18 @@ async def mark_read(conversation_id: int, current_user_id: int, session: AsyncSe
         raise HTTPException(status_code=403, detail="Sin acceso")
 
     msgs = (
-        await session.execute(
-            sa_select(Message).where(
-                Message.conversation_id == conversation_id,
-                Message.sender_id != current_user_id,
-                Message.read == False,  # noqa: E712
+        (
+            await session.execute(
+                sa_select(Message).where(
+                    Message.conversation_id == conversation_id,
+                    Message.sender_id != current_user_id,
+                    Message.read == False,  # noqa: E712
+                )
             )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
 
     for m in msgs:
         m.read = True

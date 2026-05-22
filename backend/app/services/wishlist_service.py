@@ -20,12 +20,16 @@ def _fmt_product(p: Product, img_url: str | None) -> dict:
 
 async def get_wishlist(current_user_id: int, session: AsyncSession) -> list:
     items = (
-        await session.execute(
-            sa_select(WishlistItem)
-            .where(WishlistItem.user_id == current_user_id)
-            .order_by(WishlistItem.created_at.desc())
+        (
+            await session.execute(
+                sa_select(WishlistItem)
+                .where(WishlistItem.user_id == current_user_id)
+                .order_by(WishlistItem.created_at.desc())
+            )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
 
     result = []
     for item in items:
@@ -53,15 +57,17 @@ async def get_wishlist(current_user_id: int, session: AsyncSession) -> list:
                     ).scalar_one_or_none()
                 product_data = _fmt_product(product, main_img.url if main_img else None)
 
-        result.append({
-            "id": item.id,
-            "user_id": item.user_id,
-            "product_id": item.product_id,
-            "search_query": item.search_query,
-            "notify": item.notify,
-            "created_at": item.created_at.isoformat(),
-            "product": product_data,
-        })
+        result.append(
+            {
+                "id": item.id,
+                "user_id": item.user_id,
+                "product_id": item.product_id,
+                "search_query": item.search_query,
+                "notify": item.notify,
+                "created_at": item.created_at.isoformat(),
+                "product": product_data,
+            }
+        )
 
     return result
 

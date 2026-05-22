@@ -54,7 +54,9 @@ async def send_message(
     session: AsyncSession = Depends(get_session),
     current_user: User = Depends(get_current_user),
 ):
-    return await message_service.send_message(conversation_id, body.content, current_user.id, session)
+    return await message_service.send_message(
+        conversation_id, body.content, current_user.id, session
+    )
 
 
 @router.patch("/{conversation_id}/messages/read")

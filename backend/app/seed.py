@@ -9,20 +9,53 @@ from sqlalchemy import select as sa_select
 from app.core.database import AsyncSessionLocal
 from app.core.security import hash_password
 from app.models.auction import Auction
-from app.models.product import Product, ProductCategory, ProductCondition, ProductImage, ProductStatus
+from app.models.product import (
+    Product,
+    ProductCategory,
+    ProductCondition,
+    ProductImage,
+    ProductStatus,
+)
 from app.models.user import User, UserRole
 
 USERS = [
-    {"email": "jorge@remarket.com", "username": "jorge_m", "password": "Test1234!", "full_name": "Jorge Muñiz", "role": UserRole.CLIENT},
-    {"email": "ana@remarket.com", "username": "ana_lopez", "password": "Test1234!", "full_name": "Ana López", "role": UserRole.CLIENT},
-    {"email": "carlos@remarket.com", "username": "carlos_v", "password": "Test1234!", "full_name": "Carlos Vega", "role": UserRole.CLIENT},
-    {"email": "mod@remarket.com", "username": "moderador", "password": "Mod1234!", "full_name": "Moderador Admin", "role": UserRole.MODERATOR},
+    {
+        "email": "jorge@remarket.com",
+        "username": "jorge_m",
+        "password": "Test1234!",
+        "full_name": "Jorge Muñiz",
+        "role": UserRole.CLIENT,
+    },
+    {
+        "email": "ana@remarket.com",
+        "username": "ana_lopez",
+        "password": "Test1234!",
+        "full_name": "Ana López",
+        "role": UserRole.CLIENT,
+    },
+    {
+        "email": "carlos@remarket.com",
+        "username": "carlos_v",
+        "password": "Test1234!",
+        "full_name": "Carlos Vega",
+        "role": UserRole.CLIENT,
+    },
+    {
+        "email": "mod@remarket.com",
+        "username": "moderador",
+        "password": "Mod1234!",
+        "full_name": "Moderador Admin",
+        "role": UserRole.MODERATOR,
+    },
 ]
 
 PRODUCTS = [
     {
         "title": "iPhone 13 Pro 256GB — Sierra Blue",
-        "description": "En perfecto estado. Batería al 94%. Se vende con caja original, cargador y funda de silicona Apple. Sin golpes ni arañazos.",
+        "description": (
+            "En perfecto estado. Batería al 94%. Se vende con caja original, "
+            "cargador y funda de silicona Apple. Sin golpes ni arañazos."
+        ),
         "condition": ProductCondition.LIKE_NEW,
         "sale_type": "fixed",
         "price": Decimal("649.00"),
@@ -32,7 +65,10 @@ PRODUCTS = [
     },
     {
         "title": "Bicicleta de montaña Trek Marlin 5",
-        "description": "Usada dos temporadas. Frenos hidráulicos Tektro, cambios Shimano Altus 2x8. Talla M. Lista para rodar.",
+        "description": (
+            "Usada dos temporadas. Frenos hidráulicos Tektro, cambios Shimano Altus 2x8. "
+            "Talla M. Lista para rodar."
+        ),
         "condition": ProductCondition.GOOD,
         "sale_type": "fixed",
         "price": Decimal("420.00"),
@@ -42,7 +78,10 @@ PRODUCTS = [
     },
     {
         "title": "MacBook Air M2 — Midnight 8/256",
-        "description": "Comprado en enero 2024, factura incluida. Carga de ciclos inferior a 40. Incluye adaptador USB-C a MagSafe.",
+        "description": (
+            "Comprado en enero 2024, factura incluida. Carga de ciclos inferior a 40. "
+            "Incluye adaptador USB-C a MagSafe."
+        ),
         "condition": ProductCondition.LIKE_NEW,
         "sale_type": "auction",
         "price": Decimal("750.00"),
@@ -53,7 +92,10 @@ PRODUCTS = [
     },
     {
         "title": "Sofá rinconera 3+2 — Gris antracita",
-        "description": "Sofá esquinero de tela. Muy buen estado. Medidas 280x200 cm. Desmontable para transporte. Recogida en Córdoba capital.",
+        "description": (
+            "Sofá esquinero de tela. Muy buen estado. Medidas 280x200 cm. "
+            "Desmontable para transporte. Recogida en Córdoba capital."
+        ),
         "condition": ProductCondition.GOOD,
         "sale_type": "fixed",
         "price": Decimal("290.00"),
@@ -63,7 +105,10 @@ PRODUCTS = [
     },
     {
         "title": "Cámara Sony A7III + objetivo 28-70",
-        "description": "Cuerpo con menos de 15.000 disparos. Incluye objetivo kit 28-70mm f/3.5-5.6 OSS, dos baterías y bolsa Lowepro.",
+        "description": (
+            "Cuerpo con menos de 15.000 disparos. "
+            "Incluye objetivo kit 28-70mm f/3.5-5.6 OSS, dos baterías y bolsa Lowepro."
+        ),
         "condition": ProductCondition.GOOD,
         "sale_type": "auction",
         "price": Decimal("1100.00"),
@@ -74,7 +119,10 @@ PRODUCTS = [
     },
     {
         "title": "Zapatillas Nike Air Max 90 — Talla 42",
-        "description": "Nuevas, sin estrenar. Compradas online en talla incorrecta. Modelo classic white/black.",
+        "description": (
+            "Nuevas, sin estrenar. Compradas online en talla incorrecta. "
+            "Modelo classic white/black."
+        ),
         "condition": ProductCondition.NEW,
         "sale_type": "fixed",
         "price": Decimal("85.00"),
@@ -84,7 +132,10 @@ PRODUCTS = [
     },
     {
         "title": "Colección vinilo Jazz — 40 LPs",
-        "description": "Colección de 40 discos de vinilo, mayoritariamente jazz (Miles Davis, Coltrane, Evans). Todos en buen estado de reproducción.",
+        "description": (
+            "Colección de 40 discos de vinilo, mayoritariamente jazz "
+            "(Miles Davis, Coltrane, Evans). Todos en buen estado de reproducción."
+        ),
         "condition": ProductCondition.USED,
         "sale_type": "auction",
         "price": Decimal("60.00"),
@@ -95,7 +146,10 @@ PRODUCTS = [
     },
     {
         "title": "Mesa de escritorio IKEA Lagkapten 160x60",
-        "description": "Color blanco, muy buen estado. Patas ajustables en altura. Incluye soporte de monitor. Desmontada para facilitar transporte.",
+        "description": (
+            "Color blanco, muy buen estado. Patas ajustables en altura. "
+            "Incluye soporte de monitor. Desmontada para facilitar transporte."
+        ),
         "condition": ProductCondition.GOOD,
         "sale_type": "fixed",
         "price": Decimal("75.00"),
@@ -136,7 +190,7 @@ async def seed() -> None:
         for u in users:
             await session.refresh(u)
 
-        created = sum(1 for u in users if u.id)
+        sum(1 for u in users if u.id)
         print(f"Users ready: {len(users)}")
 
         for p in PRODUCTS:
@@ -161,12 +215,14 @@ async def seed() -> None:
 
             if p["sale_type"] == "auction":
                 hours = p.get("auction_hours", 72)
-                session.add(Auction(
-                    product_id=product.id,
-                    current_bid=Decimal("0"),
-                    ends_at=datetime.utcnow() + timedelta(hours=hours),
-                    is_closed=False,
-                ))
+                session.add(
+                    Auction(
+                        product_id=product.id,
+                        current_bid=Decimal("0"),
+                        ends_at=datetime.utcnow() + timedelta(hours=hours),
+                        is_closed=False,
+                    )
+                )
 
         await session.commit()
         print(f"Created {len(PRODUCTS)} products.")

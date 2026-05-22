@@ -1,24 +1,23 @@
 from datetime import datetime
 from decimal import Decimal
-from enum import Enum
-from typing import Optional
+from enum import StrEnum
 
 from sqlmodel import Field, SQLModel
 
 
-class ProductStatus(str, Enum):
+class ProductStatus(StrEnum):
     ACTIVE = "active"
     SOLD = "sold"
     REMOVED = "removed"
     PENDING_REVIEW = "pending_review"
 
 
-class SaleType(str, Enum):
+class SaleType(StrEnum):
     FIXED = "fixed"
     AUCTION = "auction"
 
 
-class ProductCondition(str, Enum):
+class ProductCondition(StrEnum):
     NEW = "new"
     LIKE_NEW = "like_new"
     GOOD = "good"
@@ -28,7 +27,7 @@ class ProductCondition(str, Enum):
 class Product(SQLModel, table=True):
     __tablename__ = "product"
 
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: int | None = Field(default=None, primary_key=True)
     title: str = Field(max_length=200, index=True)
     description: str = Field(max_length=2000)
     condition: ProductCondition
@@ -43,7 +42,7 @@ class Product(SQLModel, table=True):
 class ProductImage(SQLModel, table=True):
     __tablename__ = "productimage"
 
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: int | None = Field(default=None, primary_key=True)
     product_id: int = Field(foreign_key="product.id", index=True)
     url: str
     is_main: bool = Field(default=False)

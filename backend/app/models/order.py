@@ -1,12 +1,11 @@
 from datetime import datetime
 from decimal import Decimal
-from enum import Enum
-from typing import Optional
+from enum import StrEnum
 
 from sqlmodel import Field, SQLModel
 
 
-class OrderStatus(str, Enum):
+class OrderStatus(StrEnum):
     PENDING = "pending"
     PAID = "paid"
     CANCELLED = "cancelled"
@@ -15,7 +14,7 @@ class OrderStatus(str, Enum):
 class Order(SQLModel, table=True):
     __tablename__ = "order"
 
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: int | None = Field(default=None, primary_key=True)
     product_id: int = Field(foreign_key="product.id")
     buyer_id: int = Field(foreign_key="user.id", index=True)
     seller_id: int = Field(foreign_key="user.id", index=True)

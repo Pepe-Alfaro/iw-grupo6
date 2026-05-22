@@ -1,6 +1,5 @@
 from datetime import datetime
 from decimal import Decimal
-from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel
@@ -23,7 +22,7 @@ class ProductCreate(BaseModel):
     price: Decimal
     categories: list[str] = []
     image_urls: list[str] = []
-    ends_at: Optional[datetime] = None
+    ends_at: datetime | None = None
 
 
 @router.get("")
@@ -41,7 +40,17 @@ async def list_products(
     session: AsyncSession = Depends(get_session),
 ):
     return await product_service.list_products(
-        q, category, condition, sale_type, min_price, max_price, seller_id, page, size, session, sort_by
+        q,
+        category,
+        condition,
+        sale_type,
+        min_price,
+        max_price,
+        seller_id,
+        page,
+        size,
+        session,
+        sort_by,
     )
 
 
@@ -57,9 +66,16 @@ async def create_product(
     current_user: User = Depends(get_current_user),
 ):
     return await product_service.create_product(
-        body.title, body.description, body.condition, body.sale_type,
-        body.price, body.categories, body.image_urls, body.ends_at,
-        current_user.id, session,
+        body.title,
+        body.description,
+        body.condition,
+        body.sale_type,
+        body.price,
+        body.categories,
+        body.image_urls,
+        body.ends_at,
+        current_user.id,
+        session,
     )
 
 
@@ -71,8 +87,13 @@ async def update_product(
     current_user: User = Depends(get_current_user),
 ):
     return await product_service.update_product(
-        product_id, body.title, body.description, body.condition,
-        body.price, current_user.id, session,
+        product_id,
+        body.title,
+        body.description,
+        body.condition,
+        body.price,
+        current_user.id,
+        session,
     )
 
 

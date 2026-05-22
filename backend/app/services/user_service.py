@@ -42,23 +42,29 @@ async def update_me(user_id: int, full_name: str, session: AsyncSession) -> dict
 
 async def get_my_transactions(current_user_id: int, session: AsyncSession) -> list:
     orders = (
-        await session.execute(
-            sa_select(Order)
-            .where(
-                or_(Order.buyer_id == current_user_id, Order.seller_id == current_user_id),
-                Order.status != OrderStatus.CANCELLED,
+        (
+            await session.execute(
+                sa_select(Order)
+                .where(
+                    or_(Order.buyer_id == current_user_id, Order.seller_id == current_user_id),
+                    Order.status != OrderStatus.CANCELLED,
+                )
+                .order_by(Order.created_at.desc())
             )
-            .order_by(Order.created_at.desc())
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
 
     result = []
     for o in orders:
         product = await session.get(Product, o.product_id)
-        result.append({
-            **o.model_dump(),
-            "amount": str(o.amount),
-            "role": "buyer" if o.buyer_id == current_user_id else "seller",
-            "product": {"id": product.id, "title": product.title} if product else None,
-        })
+        result.append(
+            {
+                **o.model_dump(),
+                "amount": str(o.amount),
+                "role": "buyer" if o.buyer_id == current_user_id else "seller",
+                "product": {"id": product.id, "title": product.title} if product else None,
+            }
+        )
     return result

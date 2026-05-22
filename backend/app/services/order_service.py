@@ -1,6 +1,4 @@
 from fastapi import HTTPException
-from sqlalchemy import or_
-from sqlmodel import select as sa_select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.models.order import Order, OrderStatus

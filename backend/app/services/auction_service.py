@@ -46,13 +46,17 @@ async def adjudicate_expired(session: AsyncSession) -> None:
     from sqlalchemy import select as sa_select
 
     auctions = (
-        await session.execute(
-            sa_select(Auction).where(
-                Auction.ends_at <= datetime.utcnow(),
-                Auction.is_closed == False,  # noqa: E712
+        (
+            await session.execute(
+                sa_select(Auction).where(
+                    Auction.ends_at <= datetime.utcnow(),
+                    Auction.is_closed == False,  # noqa: E712
+                )
             )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
 
     for auction in auctions:
         auction.is_closed = True
