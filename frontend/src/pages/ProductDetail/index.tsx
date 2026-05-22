@@ -56,8 +56,11 @@ function AuctionTimer({ endsAt }: { endsAt: string }) {
   )
 }
 
-// ─── Seller card ────────────────────────────────────────────────────────────
-function SellerCard({ seller, onMessage, canMessage }: { seller: NonNullable<import('../../types').Product['seller']>; onMessage: () => void; canMessage: boolean }) {
+function SellerCard({ seller, onMessage, canMessage }: {
+  seller: NonNullable<import('../../types').Product['seller']>
+  onMessage: () => void
+  canMessage: boolean
+}) {
   return (
     <div className="border border-ink-200 rounded-card p-4">
       <div className="flex items-center gap-3">
@@ -138,12 +141,10 @@ export default function ProductDetail() {
     </div>
   )
 
-  // product is non-null past the early return above; closures need an explicit const
-  const prod = product
-  const isSeller = user?.id === prod.seller_id
-  const isAuction = prod.sale_type === 'auction'
-  const mainImage = prod.images?.find((i) => i.is_main) ?? prod.images?.[0]
-  const displayImage = activeImgId != null ? prod.images?.find((i) => i.id === activeImgId) : mainImage
+  const isSeller = user?.id === product.seller_id
+  const isAuction = product.sale_type === 'auction'
+  const mainImage = product.images?.find((i) => i.is_main) ?? product.images?.[0]
+  const displayImage = activeImgId != null ? product.images?.find((i) => i.id === activeImgId) : mainImage
 
   async function handleBid() {
     if (!user) { navigate('/auth'); return }
@@ -154,7 +155,7 @@ export default function ProductDetail() {
     }
     setBidLoading(true)
     try {
-      const { data } = await auctionsApi.bid(prod.id, amount)
+      const { data } = await auctionsApi.bid(product.id, amount)
       setAuction((a) => a ? { ...a, current_bid: data.amount, current_bidder_id: user.id } : a)
       setBidAmount('')
       toast({ kind: 'success', title: '¡Puja realizada!', body: `Tu puja de ${fmtPrice(amount)} ha sido registrada.` })
@@ -169,9 +170,9 @@ export default function ProductDetail() {
   async function handleBuyNow() {
     if (!user) { navigate('/auth'); return }
     try {
-      const { data } = await ordersApi.create(prod.id)
+      const { data } = await ordersApi.create(product.id)
       toast({ kind: 'success', title: '¡Compra completada!', body: `Pedido #${data.id} creado.` })
-      navigate(`/profile/me`)
+      navigate('/profile/me')
     } catch (err: unknown) {
       const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail
       toast({ kind: 'error', title: detail ?? 'Error al comprar' })
@@ -180,9 +181,9 @@ export default function ProductDetail() {
 
   async function handleMessage() {
     if (!user) { navigate('/auth'); return }
-    if (!prod.seller_id) return
+    if (!product.seller_id) return
     try {
-      const { data } = await messagesApi.createConversation(prod.seller_id, prod.id)
+      const { data } = await messagesApi.createConversation(product.seller_id, product.id)
       navigate(`/messages?conv=${data.id}`)
     } catch {
       navigate('/messages')
@@ -193,7 +194,7 @@ export default function ProductDetail() {
     if (!reportReason) return
     setReportLoading(true)
     try {
-      await productsApi.report(prod.id, reportReason, reportComment.trim() || undefined)
+      await productsApi.report(product.id, reportReason, reportComment.trim() || undefined)
       toast({ kind: 'success', title: 'Reporte enviado', body: 'El equipo de moderación lo revisará en breve.' })
       setReportOpen(false)
       setReportReason('')
@@ -212,177 +213,11 @@ export default function ProductDetail() {
       setWished(false)
       setWishItemId(null)
     } else {
-      const { data } = await wishlistApi.add(prod.id)
+      const { data } = await wishlistApi.add(product.id)
       setWished(true)
       setWishItemId(data.id)
     }
   }
-
-  const RightColumn = () => (
-    <div className="space-y-5">
-      {/* Breadcrumb */}
-      <div className="flex items-center gap-1.5 text-[12px] text-ink-600">
-        <button onClick={() => navigate('/')} className="hover:text-brand">Inicio</button>
-        <span>/</span>
-        {product.categories?.[0] && (
-          <>
-            <button onClick={() => navigate(`/search?category=${product.categories![0]}`)} className="hover:text-brand capitalize">
-              {product.categories[0]}
-            </button>
-            <span>/</span>
-          </>
-        )}
-        <span className="text-ink-900 truncate max-w-[160px]">{product.title}</span>
-      </div>
-
-      <div>
-        <h1 className="text-[24px] font-bold text-ink-900 leading-tight">{product.title}</h1>
-        <div className="flex items-center gap-2 mt-2 flex-wrap">
-          <Badge tone="neutral">{conditionLabel(product.condition)}</Badge>
-          {product.categories?.map((c) => (
-            <Badge key={c} tone="brand" className="capitalize">{c}</Badge>
-          ))}
-        </div>
-      </div>
-
-      {isAuction ? (
-        /* ── Auction block ── */
-        <div className="space-y-4">
-          <Badge tone="amber" className="text-[14px] px-4 py-2">EN SUBASTA</Badge>
-          <div>
-            <p className="text-[12px] text-ink-600 mb-1">Precio inicial</p>
-            <p className="text-ink-400 line-through text-[15px]">{fmtPrice(product.price)}</p>
-          </div>
-          <div>
-            <p className="text-[12px] text-ink-600 mb-1">Puja actual</p>
-            <p className="text-[32px] font-bold text-amber500">
-              {fmtPrice(auction?.current_bid ?? product.price)}
-            </p>
-          </div>
-          {auction && <AuctionTimer endsAt={auction.ends_at} />}
-          {auction && (
-            <p className="text-[12px] text-ink-600">
-              {auction.current_bidder_id ? `Último pujador activo` : 'Sin pujas todavía'}
-            </p>
-          )}
-          {!auction?.is_closed && !isSeller && (
-            <div className="space-y-2">
-              <input
-                type="number"
-                placeholder={`Mín. ${fmtPrice(parseFloat(auction?.current_bid ?? product.price.toString()) + 1)}`}
-                value={bidAmount}
-                onChange={(e) => setBidAmount(e.target.value)}
-                className="w-full h-11 border border-ink-200 rounded-lg px-4 text-[14px] outline-none focus:border-amber500"
-              />
-              <Button kind="amber" className="w-full" size="lg" loading={bidLoading} onClick={handleBid}>
-                Pujar ahora
-              </Button>
-              <div className="flex items-start gap-1.5 text-[11px] text-ink-600">
-                <Info size={12} strokeWidth={1.5} className="mt-0.5 flex-none" />
-                Las pujas son vinculantes. Solo puja si estás dispuesto a comprar.
-              </div>
-            </div>
-          )}
-          {!auction?.is_closed && isSeller && (
-            <p className="text-[13px] text-ink-400 text-center py-2">Este es tu anuncio</p>
-          )}
-        </div>
-      ) : (
-        /* ── Fixed price block ── */
-        <div className="space-y-4">
-          <div>
-            <p className="text-[32px] font-bold text-brand-dark">{fmtPrice(product.price)}</p>
-            <p className="text-[12px] text-ink-400">IVA incluido</p>
-          </div>
-          {isSeller ? (
-            <div className="p-3 rounded-lg bg-ink-50 border border-ink-200 text-center text-[13px] text-ink-600">
-              Este es tu anuncio
-            </div>
-          ) : (
-            <Button className="w-full" size="xl" onClick={handleBuyNow}>
-              Comprar ahora
-            </Button>
-          )}
-          {!isSeller && (
-            <Button kind="outlineBrand" className="w-full" size="lg" icon={<Heart size={16} strokeWidth={1.5} className={wished ? 'fill-brand stroke-brand' : ''} />} onClick={handleToggleWish}>
-              {wished ? 'Guardado' : 'Añadir a Wishlist'}
-            </Button>
-          )}
-        </div>
-      )}
-
-      <hr className="border-ink-200" />
-
-      {product.seller && (
-        <SellerCard seller={product.seller} onMessage={handleMessage} canMessage={!isSeller} />
-      )}
-
-      <hr className="border-ink-200" />
-
-      {/* Description */}
-      <div>
-        <h3 className="text-[14px] font-semibold text-ink-900 mb-2">Descripción</h3>
-        <p className="text-[14px] text-ink-600 leading-relaxed whitespace-pre-line">{product.description}</p>
-      </div>
-
-      <div className="flex items-center gap-1 text-[12px] text-ink-400">
-        <MapPin size={11} strokeWidth={1.5} /> España
-      </div>
-
-      {!isSeller && (
-        <div>
-          <button
-            onClick={() => {
-              if (!user) { navigate('/auth'); return }
-              setReportOpen((v) => !v)
-            }}
-            className="text-[12px] text-ink-400 hover:text-danger underline-offset-2 hover:underline"
-          >
-            {reportOpen ? 'Cancelar reporte' : 'Reportar anuncio'}
-          </button>
-
-          {reportOpen && (
-            <div className="mt-3 p-4 border border-ink-200 rounded-card bg-white">
-              <p className="text-[13px] font-semibold text-ink-900 mb-3">¿Por qué quieres reportar este anuncio?</p>
-              <div className="space-y-2 mb-3">
-                {REPORT_REASONS.map((r) => (
-                  <label key={r} className="flex items-center gap-2.5 cursor-pointer group">
-                    <input
-                      type="radio"
-                      name="report-reason"
-                      value={r}
-                      checked={reportReason === r}
-                      onChange={() => setReportReason(r)}
-                      className="accent-brand w-4 h-4 flex-none"
-                    />
-                    <span className={`text-[13px] transition-colors ${reportReason === r ? 'text-ink-900 font-medium' : 'text-ink-600 group-hover:text-ink-900'}`}>
-                      {r}
-                    </span>
-                  </label>
-                ))}
-              </div>
-              <textarea
-                value={reportComment}
-                onChange={(e) => setReportComment(e.target.value)}
-                maxLength={500}
-                rows={3}
-                placeholder="Detalles adicionales (opcional)…"
-                className="w-full border border-ink-200 rounded-lg px-3 py-2 text-[13px] text-ink-900 outline-none focus:border-brand transition-colors resize-none mb-3"
-              />
-              <div className="flex gap-2">
-                <Button kind="danger" size="sm" disabled={!reportReason} loading={reportLoading} onClick={handleReport}>
-                  Enviar reporte
-                </Button>
-                <Button kind="ghost" size="sm" onClick={() => { setReportOpen(false); setReportReason(''); setReportComment('') }}>
-                  Cancelar
-                </Button>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  )
 
   return (
     <div className="min-h-screen flex flex-col bg-ink-50">
@@ -391,7 +226,8 @@ export default function ProductDetail() {
 
       <main className="flex-1 max-w-[1280px] mx-auto w-full px-4 md:px-8 py-8">
         <div className="md:grid md:grid-cols-[60%_40%] md:gap-10">
-          {/* Images */}
+
+          {/* ── Images ── */}
           <div className="mb-6 md:mb-0">
             <div className="rounded-card overflow-hidden bg-ink-100 aspect-square w-full">
               {displayImage ? (
@@ -410,8 +246,7 @@ export default function ProductDetail() {
                     <div
                       key={img.id}
                       onClick={() => setActiveImgId(img.id)}
-                      className={`w-16 h-16 rounded-lg overflow-hidden border-2 cursor-pointer transition-colors
-                        ${isActive ? 'border-brand' : 'border-transparent hover:border-brand/40'}`}
+                      className={`w-16 h-16 rounded-lg overflow-hidden border-2 cursor-pointer transition-colors ${isActive ? 'border-brand' : 'border-transparent hover:border-brand/40'}`}
                     >
                       <img src={img.url} alt="" className="w-full h-full object-cover" />
                     </div>
@@ -421,9 +256,192 @@ export default function ProductDetail() {
             )}
           </div>
 
-          {/* Right col */}
-          <div>
-            {RightColumn()}
+          {/* ── Right column ── */}
+          <div className="space-y-5">
+
+            {/* Breadcrumb */}
+            <div className="flex items-center gap-1.5 text-[12px] text-ink-600">
+              <button onClick={() => navigate('/')} className="hover:text-brand">Inicio</button>
+              <span>/</span>
+              {product.categories?.[0] && (
+                <>
+                  <button onClick={() => navigate(`/search?category=${product.categories![0]}`)} className="hover:text-brand capitalize">
+                    {product.categories[0]}
+                  </button>
+                  <span>/</span>
+                </>
+              )}
+              <span className="text-ink-900 truncate max-w-[160px]">{product.title}</span>
+            </div>
+
+            {/* Title + badges */}
+            <div>
+              <h1 className="text-[24px] font-bold text-ink-900 leading-tight">{product.title}</h1>
+              <div className="flex items-center gap-2 mt-2 flex-wrap">
+                <Badge tone="neutral">{conditionLabel(product.condition)}</Badge>
+                {product.categories?.map((c) => (
+                  <Badge key={c} tone="brand" className="capitalize">{c}</Badge>
+                ))}
+              </div>
+            </div>
+
+            {/* Price / bid block */}
+            {isAuction ? (
+              <div className="space-y-4">
+                <Badge tone="amber" className="text-[14px] px-4 py-2">EN SUBASTA</Badge>
+                <div>
+                  <p className="text-[12px] text-ink-600 mb-1">Precio inicial</p>
+                  <p className="text-ink-400 line-through text-[15px]">{fmtPrice(product.price)}</p>
+                </div>
+                <div>
+                  <p className="text-[12px] text-ink-600 mb-1">Puja actual</p>
+                  <p className="text-[32px] font-bold text-amber500">
+                    {fmtPrice(auction?.current_bid ?? product.price)}
+                  </p>
+                </div>
+                {auction && <AuctionTimer endsAt={auction.ends_at} />}
+                {auction && (
+                  <p className="text-[12px] text-ink-600">
+                    {auction.current_bidder_id ? 'Último pujador activo' : 'Sin pujas todavía'}
+                  </p>
+                )}
+                {!auction?.is_closed && !isSeller && (
+                  <div className="space-y-2">
+                    <input
+                      type="number"
+                      placeholder={`Mín. ${fmtPrice(parseFloat(auction?.current_bid ?? product.price.toString()) + 1)}`}
+                      value={bidAmount}
+                      onChange={(e) => setBidAmount(e.target.value)}
+                      className="w-full h-11 border border-ink-200 rounded-lg px-4 text-[14px] outline-none focus:border-amber500"
+                    />
+                    <Button kind="amber" className="w-full" size="lg" loading={bidLoading} onClick={handleBid}>
+                      Pujar ahora
+                    </Button>
+                    <div className="flex items-start gap-1.5 text-[11px] text-ink-600">
+                      <Info size={12} strokeWidth={1.5} className="mt-0.5 flex-none" />
+                      Las pujas son vinculantes. Solo puja si estás dispuesto a comprar.
+                    </div>
+                  </div>
+                )}
+                {!auction?.is_closed && isSeller && (
+                  <p className="text-[13px] text-ink-400 text-center py-2">Este es tu anuncio</p>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div>
+                  <p className="text-[32px] font-bold text-brand-dark">{fmtPrice(product.price)}</p>
+                  <p className="text-[12px] text-ink-400">IVA incluido</p>
+                </div>
+                {isSeller ? (
+                  <div className="p-3 rounded-lg bg-ink-50 border border-ink-200 text-center text-[13px] text-ink-600">
+                    Este es tu anuncio
+                  </div>
+                ) : (
+                  <Button className="w-full" size="xl" onClick={handleBuyNow}>
+                    Comprar ahora
+                  </Button>
+                )}
+                {!isSeller && (
+                  <Button
+                    kind="outlineBrand"
+                    className="w-full"
+                    size="lg"
+                    icon={<Heart size={16} strokeWidth={1.5} className={wished ? 'fill-brand stroke-brand' : ''} />}
+                    onClick={handleToggleWish}
+                  >
+                    {wished ? 'Guardado' : 'Añadir a Wishlist'}
+                  </Button>
+                )}
+              </div>
+            )}
+
+            <hr className="border-ink-200" />
+
+            {/* Seller card */}
+            {product.seller && (
+              <SellerCard seller={product.seller} onMessage={handleMessage} canMessage={!isSeller} />
+            )}
+
+            <hr className="border-ink-200" />
+
+            {/* Description */}
+            <div>
+              <h3 className="text-[14px] font-semibold text-ink-900 mb-2">Descripción</h3>
+              <p className="text-[14px] text-ink-600 leading-relaxed whitespace-pre-line">{product.description}</p>
+            </div>
+
+            <div className="flex items-center gap-1 text-[12px] text-ink-400">
+              <MapPin size={11} strokeWidth={1.5} /> España
+            </div>
+
+            {/* Report section */}
+            {!isSeller && (
+              <div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!user) { navigate('/auth'); return }
+                    setReportOpen((prev) => !prev)
+                  }}
+                  className="text-[12px] text-ink-400 hover:text-danger underline-offset-2 hover:underline"
+                >
+                  {reportOpen ? 'Cancelar reporte' : 'Reportar anuncio'}
+                </button>
+
+                {reportOpen && (
+                  <div className="mt-3 p-4 border border-ink-200 rounded-card bg-white">
+                    <p className="text-[13px] font-semibold text-ink-900 mb-3">
+                      ¿Por qué quieres reportar este anuncio?
+                    </p>
+                    <div className="space-y-2 mb-3">
+                      {REPORT_REASONS.map((r) => (
+                        <label key={r} className="flex items-center gap-2.5 cursor-pointer group">
+                          <input
+                            type="radio"
+                            name="report-reason"
+                            value={r}
+                            checked={reportReason === r}
+                            onChange={() => setReportReason(r)}
+                            className="accent-brand w-4 h-4 flex-none"
+                          />
+                          <span className={`text-[13px] transition-colors ${reportReason === r ? 'text-ink-900 font-medium' : 'text-ink-600 group-hover:text-ink-900'}`}>
+                            {r}
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                    <textarea
+                      value={reportComment}
+                      onChange={(e) => setReportComment(e.target.value)}
+                      maxLength={500}
+                      rows={3}
+                      placeholder="Detalles adicionales (opcional)…"
+                      className="w-full border border-ink-200 rounded-lg px-3 py-2 text-[13px] text-ink-900 outline-none focus:border-brand transition-colors resize-none mb-3"
+                    />
+                    <div className="flex gap-2">
+                      <Button
+                        kind="danger"
+                        size="sm"
+                        disabled={!reportReason}
+                        loading={reportLoading}
+                        onClick={handleReport}
+                      >
+                        Enviar reporte
+                      </Button>
+                      <Button
+                        kind="ghost"
+                        size="sm"
+                        onClick={() => { setReportOpen(false); setReportReason(''); setReportComment('') }}
+                      >
+                        Cancelar
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
           </div>
         </div>
       </main>
