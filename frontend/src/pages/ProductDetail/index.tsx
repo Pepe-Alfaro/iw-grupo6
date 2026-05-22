@@ -141,10 +141,11 @@ export default function ProductDetail() {
     </div>
   )
 
-  const isSeller = user?.id === product.seller_id
-  const isAuction = product.sale_type === 'auction'
-  const mainImage = product.images?.find((i) => i.is_main) ?? product.images?.[0]
-  const displayImage = activeImgId != null ? product.images?.find((i) => i.id === activeImgId) : mainImage
+  const prod = product
+  const isSeller = user?.id === prod.seller_id
+  const isAuction = prod.sale_type === 'auction'
+  const mainImage = prod.images?.find((i) => i.is_main) ?? prod.images?.[0]
+  const displayImage = activeImgId != null ? prod.images?.find((i) => i.id === activeImgId) : mainImage
 
   async function handleBid() {
     if (!user) { navigate('/auth'); return }
@@ -155,7 +156,7 @@ export default function ProductDetail() {
     }
     setBidLoading(true)
     try {
-      const { data } = await auctionsApi.bid(product.id, amount)
+      const { data } = await auctionsApi.bid(prod.id, amount)
       setAuction((a) => a ? { ...a, current_bid: data.amount, current_bidder_id: user.id } : a)
       setBidAmount('')
       toast({ kind: 'success', title: '¡Puja realizada!', body: `Tu puja de ${fmtPrice(amount)} ha sido registrada.` })
@@ -170,7 +171,7 @@ export default function ProductDetail() {
   async function handleBuyNow() {
     if (!user) { navigate('/auth'); return }
     try {
-      const { data } = await ordersApi.create(product.id)
+      const { data } = await ordersApi.create(prod.id)
       toast({ kind: 'success', title: '¡Compra completada!', body: `Pedido #${data.id} creado.` })
       navigate('/profile/me')
     } catch (err: unknown) {
@@ -181,9 +182,9 @@ export default function ProductDetail() {
 
   async function handleMessage() {
     if (!user) { navigate('/auth'); return }
-    if (!product.seller_id) return
+    if (!prod.seller_id) return
     try {
-      const { data } = await messagesApi.createConversation(product.seller_id, product.id)
+      const { data } = await messagesApi.createConversation(prod.seller_id, prod.id)
       navigate(`/messages?conv=${data.id}`)
     } catch {
       navigate('/messages')
@@ -194,7 +195,7 @@ export default function ProductDetail() {
     if (!reportReason) return
     setReportLoading(true)
     try {
-      await productsApi.report(product.id, reportReason, reportComment.trim() || undefined)
+      await productsApi.report(prod.id, reportReason, reportComment.trim() || undefined)
       toast({ kind: 'success', title: 'Reporte enviado', body: 'El equipo de moderación lo revisará en breve.' })
       setReportOpen(false)
       setReportReason('')
@@ -213,7 +214,7 @@ export default function ProductDetail() {
       setWished(false)
       setWishItemId(null)
     } else {
-      const { data } = await wishlistApi.add(product.id)
+      const { data } = await wishlistApi.add(prod.id)
       setWished(true)
       setWishItemId(data.id)
     }
