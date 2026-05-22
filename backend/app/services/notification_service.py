@@ -1,5 +1,5 @@
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
-from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.models.notification import Notification
 from app.models.wishlist import WishlistItem
@@ -12,27 +12,24 @@ async def notify(user_id: int, title: str, body: str | None, session: AsyncSessi
 async def notify_wishlist_users(
     product_id: int, title: str, body: str, session: AsyncSession
 ) -> None:
-    items = (
-        await session.exec(
-            select(WishlistItem).where(
-                WishlistItem.product_id == product_id,
-                WishlistItem.notify == True,  # noqa: E712
-            )
+    result = await session.execute(
+        select(WishlistItem).where(
+            WishlistItem.product_id == product_id,
+            WishlistItem.notify == True,  # noqa: E712
         )
-    ).all()
-    for item in items:
+    )
+    for item in result.scalars().all():
         session.add(Notification(user_id=item.user_id, title=title, body=body))
 
 
 async def list_notifications(user_id: int, session: AsyncSession) -> list[dict]:
-    notifs = (
-        await session.exec(
-            select(Notification)
-            .where(Notification.user_id == user_id)
-            .order_by(Notification.created_at.desc())
-            .limit(50)
-        )
-    ).all()
+    result = await session.execute(
+        select(Notification)
+        .where(Notification.user_id == user_id)
+        .order_by(Notification.created_at.desc())
+        .limit(50)
+    )
+    notifs = result.scalars().all()
     return [
         {
             "id": n.id,
@@ -46,14 +43,13 @@ async def list_notifications(user_id: int, session: AsyncSession) -> list[dict]:
 
 
 async def mark_all_read(user_id: int, session: AsyncSession) -> int:
-    notifs = (
-        await session.exec(
-            select(Notification).where(
-                Notification.user_id == user_id,
-                Notification.read == False,  # noqa: E712
-            )
+    result = await session.execute(
+        select(Notification).where(
+            Notification.user_id == user_id,
+            Notification.read == False,  # noqa: E712
         )
-    ).all()
+    )
+    notifs = result.scalars().all()
     for n in notifs:
         n.read = True
         session.add(n)
