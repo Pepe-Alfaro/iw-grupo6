@@ -5,6 +5,7 @@ import { Navbar } from '../../components/layout/Navbar'
 import { BottomNav } from '../../components/layout/BottomNav'
 import { Button } from '../../components/ui/Button'
 import { Badge } from '../../components/ui/Badge'
+import { useToast } from '../../components/ui/Toast'
 import { wishlistApi } from '../../api/wishlistApi'
 import type { WishlistItemWithProduct } from '../../api/wishlistApi'
 import { fmtPrice, conditionLabel } from '../../utils/format'
@@ -77,24 +78,33 @@ function WishCard({ item, onRemove, onToggleNotify }: {
 
 export default function Wishlist() {
   const navigate = useNavigate()
+  const toast = useToast()
   const [items, setItems] = useState<WishlistItemWithProduct[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     wishlistApi.list()
       .then((r) => setItems(r.data))
-      .catch(() => null)
+      .catch(() => toast({ kind: 'error', title: 'Error al cargar la wishlist' }))
       .finally(() => setLoading(false))
-  }, [])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleRemove(id: number) {
-    await wishlistApi.remove(id).catch(() => null)
-    setItems((prev) => prev.filter((i) => i.id !== id))
+    try {
+      await wishlistApi.remove(id)
+      setItems((prev) => prev.filter((i) => i.id !== id))
+    } catch {
+      toast({ kind: 'error', title: 'Error al eliminar el artículo' })
+    }
   }
 
   async function handleToggleNotify(id: number) {
-    const { data } = await wishlistApi.toggleNotify(id)
-    setItems((prev) => prev.map((i) => i.id === id ? { ...i, notify: data.notify } : i))
+    try {
+      const { data } = await wishlistApi.toggleNotify(id)
+      setItems((prev) => prev.map((i) => i.id === id ? { ...i, notify: data.notify } : i))
+    } catch {
+      toast({ kind: 'error', title: 'Error al cambiar la alerta' })
+    }
   }
 
   const productItems = items.filter((i) => i.product_id !== null)

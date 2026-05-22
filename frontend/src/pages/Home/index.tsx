@@ -4,7 +4,7 @@ import { Navbar } from '../../components/layout/Navbar'
 import { BottomNav } from '../../components/layout/BottomNav'
 import { ProductCard, SkeletonCard } from '../../components/ProductCard'
 import { useProducts } from '../../hooks/useProducts'
-import { useAuthStore } from '../../store/authStore'
+import { useWishlistIds } from '../../hooks/useWishlistIds'
 import type { LucideIcon } from 'lucide-react'
 
 const CATEGORIES: { id: string; label: string; Icon: LucideIcon }[] = [
@@ -21,7 +21,7 @@ const CATEGORIES: { id: string; label: string; Icon: LucideIcon }[] = [
 function ProductGrid({ title, link, filters }: { title: string; link?: string; filters: object }) {
   const navigate = useNavigate()
   const { data, loading } = useProducts(filters)
-  const wishlist = useAuthStore((s) => s.user)
+  const { ids: wishIds, toggle } = useWishlistIds()
 
   return (
     <section className="max-w-[1280px] mx-auto px-4 md:px-8 py-8">
@@ -42,8 +42,8 @@ function ProductGrid({ title, link, filters }: { title: string; link?: string; f
               <ProductCard
                 key={p.id}
                 product={p}
-                wished={false}
-                onToggleWish={() => !wishlist && navigate('/auth')}
+                wished={wishIds.has(p.id)}
+                onToggleWish={() => toggle(p.id).catch(() => null)}
               />
             ))}
       </div>

@@ -6,6 +6,7 @@ import { BottomNav } from '../../components/layout/BottomNav'
 import { ProductCard, SkeletonCard } from '../../components/ProductCard'
 import { Button } from '../../components/ui/Button'
 import { useProducts } from '../../hooks/useProducts'
+import { useWishlistIds } from '../../hooks/useWishlistIds'
 
 const CATEGORIES = ['ropa', 'electrónica', 'hogar', 'deportes', 'libros', 'juguetes', 'belleza', 'motor']
 const CONDITIONS = [
@@ -31,6 +32,7 @@ function FilterGroup({ label, children, defaultOpen = true }: { label: string; c
 export default function Search() {
   const [params, setParams] = useSearchParams()
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false)
+  const { ids: wishIds, toggle } = useWishlistIds()
 
   // Sync filters from URL
   const [filters, setFilters] = useState({
@@ -251,7 +253,7 @@ export default function Search() {
               <>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                   {data?.items.map((p) => (
-                    <ProductCard key={p.id} product={p} wished={false} />
+                    <ProductCard key={p.id} product={p} wished={wishIds.has(p.id)} onToggleWish={() => toggle(p.id).catch(() => null)} />
                   ))}
                 </div>
 

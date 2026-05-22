@@ -6,33 +6,11 @@ import { Button } from '../../components/ui/Button'
 import { useToast } from '../../components/ui/Toast'
 import { useAuthStore } from '../../store/authStore'
 import { fmtPrice, fmtDate } from '../../utils/format'
-import client from '../../api/client'
+import { moderationApi } from '../../api/moderationApi'
+import type { PriceAlert, ModerationProduct } from '../../api/moderationApi'
 
-interface AlertItem {
-  id: number
-  product_id: number
-  deviation_pct: number
-  created_at: string
-  product: {
-    id: number
-    title: string
-    price: string
-    status: string
-    main_image_url: string | null
-    categories: string[]
-    seller_username: string | null
-  } | null
-}
-
-interface ProductRow {
-  id: number
-  title: string
-  price: string
-  status: string
-  sale_type: string
-  created_at: string
-  seller_username: string | null
-}
+type AlertItem = PriceAlert
+type ProductRow = ModerationProduct
 
 type View = 'alerts' | 'products'
 
@@ -55,12 +33,12 @@ export default function Moderation() {
   useEffect(() => {
     setLoading(true)
     if (view === 'alerts') {
-      client.get<AlertItem[]>('/moderation/alerts')
+      moderationApi.listAlerts()
         .then((r) => setAlerts(r.data))
         .catch(() => null)
         .finally(() => setLoading(false))
     } else {
-      client.get<ProductRow[]>('/moderation/products')
+      moderationApi.listProducts()
         .then((r) => setProducts(r.data))
         .catch(() => null)
         .finally(() => setLoading(false))
@@ -69,7 +47,7 @@ export default function Moderation() {
 
   async function resolveAlert(id: number, resolution: 'approved' | 'rejected') {
     try {
-      await client.patch(`/moderation/alerts/${id}`, { resolution })
+      await moderationApi.resolveAlert(id, resolution)
       setAlerts((prev) => prev.filter((a) => a.id !== id))
       toast({ kind: 'success', title: resolution === 'approved' ? 'Anuncio aprobado' : 'Anuncio rechazado' })
     } catch {
@@ -79,7 +57,7 @@ export default function Moderation() {
 
   async function deleteProduct(id: number) {
     try {
-      await client.delete(`/moderation/products/${id}`)
+      await moderationApi.deleteProduct(id)
       setProducts((prev) => prev.map((p) => p.id === id ? { ...p, status: 'removed' } : p))
       toast({ kind: 'success', title: 'Producto eliminado' })
     } catch {

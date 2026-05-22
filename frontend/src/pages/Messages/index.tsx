@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom'
 import { Send, ArrowLeft, MessageCircle } from 'lucide-react'
 import { Navbar } from '../../components/layout/Navbar'
 import { BottomNav } from '../../components/layout/BottomNav'
+import { useToast } from '../../components/ui/Toast'
 import { messagesApi } from '../../api/messagesApi'
 import type { ConversationWithMeta } from '../../api/messagesApi'
 import { useAuthStore } from '../../store/authStore'
@@ -86,10 +87,14 @@ function ChatThread({
   const bottomRef = useRef<HTMLDivElement>(null)
   const name = conv.other_user?.full_name ?? 'Usuario'
 
+  const toast = useToast()
+
   useEffect(() => {
-    messagesApi.listMessages(conv.id).then((r) => setMessages(r.data)).catch(() => null)
+    messagesApi.listMessages(conv.id)
+      .then((r) => setMessages(r.data))
+      .catch(() => toast({ kind: 'error', title: 'Error al cargar mensajes' }))
     messagesApi.markRead(conv.id).catch(() => null)
-  }, [conv.id])
+  }, [conv.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -105,7 +110,7 @@ function ChatThread({
       setMessages((prev) => [...prev, data])
       setInput('')
     } catch {
-      // ignore
+      toast({ kind: 'error', title: 'Error al enviar el mensaje' })
     } finally {
       setSending(false)
     }
@@ -168,6 +173,7 @@ function ChatThread({
 export default function Messages() {
   const [searchParams] = useSearchParams()
   const user = useAuthStore((s) => s.user)
+  const toast = useToast()
   const [convs, setConvs] = useState<ConversationWithMeta[]>([])
   const [activeId, setActiveId] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
@@ -177,16 +183,15 @@ export default function Messages() {
     messagesApi.listConversations()
       .then((r) => {
         setConvs(r.data)
-        // If a conversation ID was passed in URL query
         const qId = searchParams.get('conv')
         if (qId) {
           setActiveId(Number(qId))
           setMobileShowChat(true)
         }
       })
-      .catch(() => null)
+      .catch(() => toast({ kind: 'error', title: 'Error al cargar conversaciones' }))
       .finally(() => setLoading(false))
-  }, [searchParams])
+  }, [searchParams]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const activeConv = convs.find((c) => c.id === activeId)
 
