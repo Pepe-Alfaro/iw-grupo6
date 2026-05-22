@@ -38,6 +38,9 @@ export const productsApi = {
 
   delete: (id: number) => client.delete(`/products/${id}`),
 
+  report: (id: number, reason: string, comment?: string) =>
+    client.post(`/products/${id}/report`, { reason, comment }),
+
   uploadImage: (file: File) => {
     const fd = new FormData()
     fd.append('file', file)

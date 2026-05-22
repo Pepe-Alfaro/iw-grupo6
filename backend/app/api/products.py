@@ -2,17 +2,19 @@ from datetime import datetime
 from decimal import Decimal
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, Query, UploadFile
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile
 from pydantic import BaseModel
+from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.core.config import settings
 from app.core.database import get_session
 from app.core.dependencies import get_current_user
 from app.core.upload import save_upload
-from app.models.product import ProductCondition, SaleType
-from app.models.user import User
+from app.models.product import Product, ProductCondition, SaleType
+from app.models.user import User, UserRole
 from app.services import product_service
+from app.services.notification_service import notify
 
 router = APIRouter(prefix="/products", tags=["products"])
 
@@ -107,6 +109,35 @@ async def delete_product(
     current_user: User = Depends(get_current_user),
 ):
     await product_service.delete_product(product_id, current_user.id, session)
+
+
+class ReportRequest(BaseModel):
+    reason: str
+    comment: str | None = None
+
+
+@router.post("/{product_id}/report", status_code=204)
+async def report_product(
+    product_id: int,
+    body: ReportRequest,
+    session: AsyncSession = Depends(get_session),
+    current_user: User = Depends(get_current_user),
+):
+    product = await session.get(Product, product_id)
+    if not product:
+        raise HTTPException(status_code=404, detail="Producto no encontrado")
+    if product.seller_id == current_user.id:
+        raise HTTPException(status_code=400, detail="No puedes reportar tu propio anuncio")
+    mods = (
+        await session.execute(
+            select(User).where(User.role == UserRole.MODERATOR, User.is_active == True)  # noqa: E712
+        )
+    ).scalars().all()
+    notif_title = f"Reporte: {product.title[:60]}"
+    notif_body = f"Motivo: {body.reason}" + (f"\n{body.comment}" if body.comment else "")
+    for mod in mods:
+        await notify(mod.id, notif_title, notif_body, session)
+    await session.commit()
 
 
 @router.post("/upload-image", status_code=201)

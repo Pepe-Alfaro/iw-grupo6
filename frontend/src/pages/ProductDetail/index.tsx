@@ -10,10 +10,10 @@ import { useProduct } from '../../hooks/useProduct'
 import { auctionsApi } from '../../api/auctionsApi'
 import { ordersApi } from '../../api/ordersApi'
 import { wishlistApi } from '../../api/wishlistApi'
-
 import { messagesApi } from '../../api/messagesApi'
 import { useAuthStore } from '../../store/authStore'
 import { fmtPrice, conditionLabel } from '../../utils/format'
+import { ReportModal } from '../../components/ReportModal'
 import type { Auction } from '../../types'
 
 // ─── Auction countdown ──────────────────────────────────────────────────────
@@ -85,6 +85,7 @@ export default function ProductDetail() {
   const [wished, setWished] = useState(false)
   const [wishItemId, setWishItemId] = useState<number | null>(null)
   const [activeImgId, setActiveImgId] = useState<number | null>(null)
+  const [reportOpen, setReportOpen] = useState(false)
 
   useEffect(() => {
     if (product?.sale_type === 'auction') {
@@ -299,9 +300,14 @@ export default function ProductDetail() {
         <MapPin size={11} strokeWidth={1.5} /> España
       </div>
 
-      <button className="text-[12px] text-ink-400 hover:text-danger underline-offset-2 hover:underline">
-        Reportar anuncio
-      </button>
+      {!isSeller && (
+        <button
+          onClick={() => { if (!user) { navigate('/auth'); return }; setReportOpen(true) }}
+          className="text-[12px] text-ink-400 hover:text-danger underline-offset-2 hover:underline"
+        >
+          Reportar anuncio
+        </button>
+      )}
     </div>
   )
 
@@ -362,6 +368,12 @@ export default function ProductDetail() {
       )}
 
       <div className="md:hidden"><BottomNav /></div>
+
+      <ReportModal
+        open={reportOpen}
+        onClose={() => setReportOpen(false)}
+        productId={prod.id}
+      />
     </div>
   )
 }
