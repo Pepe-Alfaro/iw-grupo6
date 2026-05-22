@@ -1,14 +1,17 @@
-"""Seed script: creates sample users, products and auctions for local dev."""
+"""Seed script: creates sample users, products, orders, conversations and reviews."""
 
 import asyncio
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 
-from sqlalchemy import select as sa_select
+from sqlalchemy import and_
+from sqlmodel import select
 
 from app.core.database import AsyncSessionLocal
 from app.core.security import hash_password
 from app.models.auction import Auction
+from app.models.message import Conversation, Message
+from app.models.order import Order, OrderStatus
 from app.models.product import (
     Product,
     ProductCategory,
@@ -16,7 +19,133 @@ from app.models.product import (
     ProductImage,
     ProductStatus,
 )
+from app.models.review import Review
 from app.models.user import User, UserRole
+from app.models.wishlist import WishlistItem
+
+# idx 0=jorge, 1=ana, 2=carlos
+ORDERS = [
+    {
+        "product_title": "Bicicleta de montaña Trek Marlin 5",
+        "buyer_idx": 0,
+        "status": OrderStatus.PAID,
+        "days_ago": 15,
+    },
+    {
+        "product_title": "Zapatillas Nike Air Max 90 — Talla 42",
+        "buyer_idx": 2,
+        "status": OrderStatus.PAID,
+        "days_ago": 8,
+    },
+    {
+        "product_title": "LEGO Technic Bugatti Chiron 42083",
+        "buyer_idx": 1,
+        "status": OrderStatus.PAID,
+        "days_ago": 3,
+    },
+    {
+        "product_title": "Lámpara de pie Arco — Acero negro",
+        "buyer_idx": 0,
+        "status": OrderStatus.PENDING,
+        "days_ago": 1,
+    },
+]
+
+REVIEWS = [
+    {
+        "order_product_title": "Bicicleta de montaña Trek Marlin 5",
+        "reviewer_idx": 0,
+        "rating": 5,
+        "comment": "Todo perfecto, la bici llegó tal y como estaba descrita. Carlos muy majo y puntual.",
+    },
+    {
+        "order_product_title": "Bicicleta de montaña Trek Marlin 5",
+        "reviewer_idx": 2,
+        "rating": 5,
+        "comment": "Comprador serio, pagó al momento y sin problemas. Recomendado.",
+    },
+    {
+        "order_product_title": "Zapatillas Nike Air Max 90 — Talla 42",
+        "reviewer_idx": 2,
+        "rating": 4,
+        "comment": "Las zapatillas estaban nuevas como decía. Trato muy agradable.",
+    },
+    {
+        "order_product_title": "Zapatillas Nike Air Max 90 — Talla 42",
+        "reviewer_idx": 0,
+        "rating": 5,
+        "comment": "Carlos muy rápido y comunicativo. Sin ningún problema.",
+    },
+    {
+        "order_product_title": "LEGO Technic Bugatti Chiron 42083",
+        "reviewer_idx": 1,
+        "rating": 5,
+        "comment": "El set estaba impecable, exactamente como en las fotos. Jorge encantador.",
+    },
+]
+
+CONVERSATIONS = [
+    {
+        "a_idx": 0,
+        "b_idx": 1,
+        "product_title": "iPhone 13 Pro 256GB — Sierra Blue",
+        "messages": [
+            (0, "Hola! Sigue disponible el iPhone? Me interesa mucho"),
+            (1, "Sí, sigue disponible! Está en perfecto estado, batería al 94% como pone en el anuncio."),
+            (0, "Genial. ¿Tiene algún arañazo o golpe que no salga en las fotos?"),
+            (1, "Ninguno, lo he llevado siempre con funda. Viene con la caja original y todo."),
+            (0, "Perfecto, me lo quedo. ¿Cuándo podríamos quedar?"),
+            (1, "Este finde me viene bien, dime tú dónde y quedamos sin problema."),
+        ],
+        "days_ago": 5,
+    },
+    {
+        "a_idx": 2,
+        "b_idx": 0,
+        "product_title": "Raqueta de tenis Wilson Blade 98 v8",
+        "messages": [
+            (2, "Buenas, ¿es negociable el precio de la raqueta?"),
+            (0, "Hola! Ya está bastante ajustado pero si vienes a recogerla te la dejo en 100€."),
+            (2, "Trato hecho. ¿Quedamos el sábado por la mañana?"),
+            (0, "El sábado perfecto. Te mando ubicación por aquí."),
+        ],
+        "days_ago": 10,
+    },
+    {
+        "a_idx": 1,
+        "b_idx": 2,
+        "product_title": "Guitarra eléctrica Fender Player Stratocaster",
+        "messages": [
+            (1, "Hola! Vi tu anuncio de la Fender, ¿qué amplificador usabas con ella?"),
+            (2, "Hola! La usaba con un Fender Blues Junior. No está incluido pero si te interesa también lo tengo."),
+            (1, "Qué bien! ¿Cuánto pedirías por el ampli?"),
+            (2, "Por 150€ te lo dejo, está en buen estado. Los dos juntos por 650€ si quieres."),
+            (1, "Me lo pienso y te digo. La guitarra seguro que sí."),
+        ],
+        "days_ago": 2,
+    },
+    {
+        "a_idx": 0,
+        "b_idx": 2,
+        "product_title": "Samsung Galaxy Watch 5 Pro 45mm",
+        "messages": [
+            (0, "Hola, ¿el reloj es compatible con Android 14?"),
+            (2, "Sí, totalmente compatible. Yo lo usaba con un Samsung S23 sin ningún problema."),
+            (0, "¿Y la batería cuánto aguanta aproximadamente?"),
+            (2, "Con uso normal unos 2 días, con GPS activo un día y medio. Está al 96% de salud."),
+        ],
+        "days_ago": 1,
+    },
+]
+
+WISHLIST = [
+    {"user_idx": 0, "product_title": "MacBook Air M2 — Midnight 8/256"},
+    {"user_idx": 0, "product_title": "Cámara Sony A7III + objetivo 28-70"},
+    {"user_idx": 1, "product_title": "LEGO Technic Bugatti Chiron 42083"},
+    {"user_idx": 1, "product_title": "Dyson Airwrap Complete — Cobre/Níquel"},
+    {"user_idx": 2, "product_title": "iPhone 13 Pro 256GB — Sierra Blue"},
+    {"user_idx": 2, "product_title": "Sony WH-1000XM5 — Auriculares Noise Cancelling"},
+]
 
 USERS = [
     {
@@ -375,8 +504,8 @@ async def seed() -> None:
         users: list[User] = []
         for u in USERS:
             existing = (
-                await session.execute(sa_select(User).where(User.email == u["email"]))
-            ).scalar_one_or_none()
+                await session.exec(select(User).where(User.email == u["email"]))
+            ).one_or_none()
             if existing:
                 users.append(existing)
             else:
@@ -400,8 +529,8 @@ async def seed() -> None:
         created = 0
         for p in PRODUCTS:
             exists = (
-                await session.execute(sa_select(Product).where(Product.title == p["title"]))
-            ).scalar_one_or_none()
+                await session.exec(select(Product).where(Product.title == p["title"]))
+            ).one_or_none()
             if exists:
                 continue
 
@@ -430,7 +559,7 @@ async def seed() -> None:
                     Auction(
                         product_id=product.id,
                         current_bid=Decimal("0"),
-                        ends_at=datetime.utcnow() + timedelta(hours=hours),
+                        ends_at=datetime.now(UTC).replace(tzinfo=None) + timedelta(hours=hours),
                         is_closed=False,
                     )
                 )
@@ -438,6 +567,179 @@ async def seed() -> None:
 
         await session.commit()
         print(f"Products created: {created} (skipped {len(PRODUCTS) - created} already existing)")
+
+        # Reload all products by title for later references
+        all_products: dict[str, Product] = {}
+        for p in PRODUCTS:
+            row = (
+                await session.exec(select(Product).where(Product.title == p["title"]))
+            ).one_or_none()
+            if row:
+                all_products[p["title"]] = row
+
+        # ── Orders ───────────────────────────────────────────────────────────
+        orders_created = 0
+        seeded_orders: dict[str, Order] = {}
+        for o in ORDERS:
+            product = all_products.get(o["product_title"])
+            if not product:
+                continue
+            buyer = users[o["buyer_idx"]]
+            exists = (
+                await session.exec(
+                    select(Order).where(
+                        and_(Order.product_id == product.id, Order.buyer_id == buyer.id)
+                    )
+                )
+            ).one_or_none()
+            if exists:
+                seeded_orders[o["product_title"]] = exists
+                continue
+
+            created_at = datetime.now(UTC).replace(tzinfo=None) - timedelta(days=o["days_ago"])
+            order = Order(
+                product_id=product.id,
+                buyer_id=buyer.id,
+                seller_id=product.seller_id,
+                amount=product.price,
+                status=o["status"],
+                created_at=created_at,
+            )
+            session.add(order)
+            if o["status"] == OrderStatus.PAID:
+                product.status = ProductStatus.SOLD
+                session.add(product)
+            await session.flush()
+            seeded_orders[o["product_title"]] = order
+            orders_created += 1
+
+        await session.commit()
+        for order in seeded_orders.values():
+            await session.refresh(order)
+        print(f"Orders created: {orders_created}")
+
+        # ── Reviews ──────────────────────────────────────────────────────────
+        reviews_created = 0
+        for r in REVIEWS:
+            order = seeded_orders.get(r["order_product_title"])
+            if not order or order.status != OrderStatus.PAID:
+                continue
+            reviewer = users[r["reviewer_idx"]]
+            reviewed_id = (
+                order.seller_id if reviewer.id == order.buyer_id else order.buyer_id
+            )
+            exists = (
+                await session.exec(
+                    select(Review).where(
+                        and_(Review.order_id == order.id, Review.reviewer_id == reviewer.id)
+                    )
+                )
+            ).one_or_none()
+            if exists:
+                continue
+
+            session.add(Review(
+                order_id=order.id,
+                reviewer_id=reviewer.id,
+                reviewed_id=reviewed_id,
+                rating=r["rating"],
+                comment=r["comment"],
+                created_at=datetime.now(UTC).replace(tzinfo=None) - timedelta(days=1),
+            ))
+            if reviewer.id == order.buyer_id:
+                order.buyer_reviewed = True
+            else:
+                order.seller_reviewed = True
+            session.add(order)
+
+            reviewed_user = await session.get(User, reviewed_id)
+            if reviewed_user:
+                total = reviewed_user.total_reviews + 1
+                reviewed_user.avg_rating = (
+                    reviewed_user.avg_rating * reviewed_user.total_reviews + r["rating"]
+                ) / total
+                reviewed_user.total_reviews = total
+                session.add(reviewed_user)
+            reviews_created += 1
+
+        await session.commit()
+        print(f"Reviews created: {reviews_created}")
+
+        # ── Conversations & messages ──────────────────────────────────────────
+        convs_created = 0
+        for c in CONVERSATIONS:
+            user_a = users[c["a_idx"]]
+            user_b = users[c["b_idx"]]
+            product = all_products.get(c["product_title"])
+            product_id = product.id if product else None
+
+            exists = (
+                await session.exec(
+                    select(Conversation).where(
+                        and_(
+                            Conversation.participant_a_id == user_a.id,
+                            Conversation.participant_b_id == user_b.id,
+                        )
+                    )
+                )
+            ).one_or_none()
+            if exists:
+                continue
+
+            base_time = datetime.now(UTC).replace(tzinfo=None) - timedelta(days=c["days_ago"])
+            conv = Conversation(
+                participant_a_id=user_a.id,
+                participant_b_id=user_b.id,
+                product_id=product_id,
+                created_at=base_time,
+            )
+            session.add(conv)
+            await session.flush()
+
+            for i, (sender_idx, content) in enumerate(c["messages"]):
+                sender = users[sender_idx]
+                session.add(Message(
+                    conversation_id=conv.id,
+                    sender_id=sender.id,
+                    content=content,
+                    sent_at=base_time + timedelta(minutes=i * 12),
+                    read=True,
+                ))
+            convs_created += 1
+
+        await session.commit()
+        print(f"Conversations created: {convs_created}")
+
+        # ── Wishlist ─────────────────────────────────────────────────────────
+        wishlist_created = 0
+        for w in WISHLIST:
+            user = users[w["user_idx"]]
+            product = all_products.get(w["product_title"])
+            if not product:
+                continue
+            exists = (
+                await session.exec(
+                    select(WishlistItem).where(
+                        and_(
+                            WishlistItem.user_id == user.id,
+                            WishlistItem.product_id == product.id,
+                        )
+                    )
+                )
+            ).one_or_none()
+            if exists:
+                continue
+            session.add(WishlistItem(
+                user_id=user.id,
+                product_id=product.id,
+                notify=True,
+                created_at=datetime.now(UTC).replace(tzinfo=None) - timedelta(days=2),
+            ))
+            wishlist_created += 1
+
+        await session.commit()
+        print(f"Wishlist items created: {wishlist_created}")
+
         print("\nSeed complete. Login credentials:")
         for u in USERS:
             print(f"  {u['role'].value:10s} {u['email']:30s} / {u['password']}")
