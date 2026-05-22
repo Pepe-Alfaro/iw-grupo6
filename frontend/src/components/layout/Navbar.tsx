@@ -1,4 +1,5 @@
-import { Heart, MessageCircle, Bell, Plus, ChevronDown, Search } from 'lucide-react'
+import { Heart, MessageCircle, Bell, Plus, ChevronDown, Search, User, ShoppingBag, Settings, LogOut, Shield } from 'lucide-react'
+import { useRef, useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../../store/authStore'
 import { Button } from '../ui/Button'
@@ -10,6 +11,25 @@ interface NavbarProps {
 export function Navbar({ mobile = false }: NavbarProps) {
   const navigate = useNavigate()
   const user = useAuthStore((s) => s.user)
+  const logout = useAuthStore((s) => s.logout)
+  const [menuOpen, setMenuOpen] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  function handleLogout() {
+    logout()
+    setMenuOpen(false)
+    navigate('/')
+  }
 
   if (mobile) {
     return (
@@ -85,20 +105,105 @@ export function Navbar({ mobile = false }: NavbarProps) {
               Publicar
             </Button>
           </div>
-          {user && (
+          {!user && (
             <button
-              onClick={() => navigate('/profile/me')}
-              className="ml-2 inline-flex items-center gap-1.5 pl-1 pr-2 h-10 rounded-full hover:bg-ink-50"
+              onClick={() => navigate('/auth')}
+              className="ml-2 h-9 px-4 rounded-full border border-ink-200 text-[13px] font-medium text-ink-900 hover:bg-ink-50 transition-colors"
             >
-              <span className="w-8 h-8 rounded-full bg-brand text-white text-[13px] font-semibold flex items-center justify-center">
-                {user.full_name[0].toUpperCase()}
-              </span>
-              <ChevronDown size={14} className="text-ink-600" strokeWidth={1.5} />
+              Iniciar sesión
             </button>
+          )}
+          {user && (
+            <div className="relative ml-2" ref={menuRef}>
+              <button
+                onClick={() => setMenuOpen((v) => !v)}
+                className="inline-flex items-center gap-1.5 pl-1 pr-2 h-10 rounded-full hover:bg-ink-50"
+              >
+                <span className="w-8 h-8 rounded-full bg-brand text-white text-[13px] font-semibold flex items-center justify-center">
+                  {user.full_name[0].toUpperCase()}
+                </span>
+                <ChevronDown
+                  size={14}
+                  className={`text-ink-600 transition-transform duration-200 ${menuOpen ? 'rotate-180' : ''}`}
+                  strokeWidth={1.5}
+                />
+              </button>
+
+              {menuOpen && (
+                <div className="absolute right-0 top-full mt-2 w-52 bg-white rounded-card shadow-modal border border-ink-200 py-1 z-50 fade-in">
+                  <div className="px-3 py-2 border-b border-ink-200">
+                    <p className="text-[13px] font-semibold text-ink-900 truncate">{user.full_name}</p>
+                    <p className="text-[11px] text-ink-600 truncate">{user.email}</p>
+                  </div>
+
+                  <DropdownItem
+                    icon={<User size={15} strokeWidth={1.5} />}
+                    label="Mi cuenta"
+                    onClick={() => { navigate('/profile/me'); setMenuOpen(false) }}
+                  />
+                  <DropdownItem
+                    icon={<ShoppingBag size={15} strokeWidth={1.5} />}
+                    label="Mis pedidos"
+                    onClick={() => { navigate('/profile/me?tab=orders'); setMenuOpen(false) }}
+                  />
+                  <DropdownItem
+                    icon={<Heart size={15} strokeWidth={1.5} />}
+                    label="Mi wishlist"
+                    onClick={() => { navigate('/wishlist'); setMenuOpen(false) }}
+                  />
+                  <DropdownItem
+                    icon={<Settings size={15} strokeWidth={1.5} />}
+                    label="Ajustes"
+                    onClick={() => { navigate('/profile/me?tab=settings'); setMenuOpen(false) }}
+                  />
+                  {user.role === 'moderator' && (
+                    <DropdownItem
+                      icon={<Shield size={15} strokeWidth={1.5} />}
+                      label="Panel moderador"
+                      onClick={() => { navigate('/moderation'); setMenuOpen(false) }}
+                    />
+                  )}
+                  <div className="border-t border-ink-200 mt-1 pt-1">
+                    <DropdownItem
+                      icon={<LogOut size={15} strokeWidth={1.5} />}
+                      label="Cerrar sesión"
+                      danger
+                      onClick={handleLogout}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
           )}
         </div>
       </div>
     </header>
+  )
+}
+
+function DropdownItem({
+  icon,
+  label,
+  onClick,
+  danger = false,
+}: {
+  icon: React.ReactNode
+  label: string
+  onClick: () => void
+  danger?: boolean
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`w-full flex items-center gap-2.5 px-3 py-2 text-[13px] font-medium transition-colors ${
+        danger
+          ? 'text-danger hover:bg-red-50'
+          : 'text-ink-900 hover:bg-ink-50'
+      }`}
+    >
+      <span className={danger ? 'text-danger' : 'text-ink-600'}>{icon}</span>
+      {label}
+    </button>
   )
 }
 
