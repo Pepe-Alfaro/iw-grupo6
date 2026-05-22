@@ -13,12 +13,15 @@ def _uid() -> str:
 
 async def _register(client: AsyncClient) -> str:
     uid = _uid()
-    resp = await client.post("/api/v1/auth/register", json={
-        "email": f"user_{uid}@test.com",
-        "username": f"user_{uid}",
-        "password": "password123",
-        "full_name": "Test User",
-    })
+    resp = await client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": f"user_{uid}@test.com",
+            "username": f"user_{uid}",
+            "password": "password123",
+            "full_name": "Test User",
+        },
+    )
     assert resp.status_code == 201
     return resp.json()["access_token"]
 
@@ -43,20 +46,25 @@ async def _create_moderator(session) -> str:
 
 
 async def _create_product(client: AsyncClient, token: str) -> dict:
-    resp = await client.post("/api/v1/products", json={
-        "title": "Producto de prueba",
-        "description": "Descripción de prueba",
-        "condition": "good",
-        "sale_type": "fixed",
-        "price": "50.00",
-        "categories": ["otros"],
-        "image_urls": [],
-    }, headers=_auth(token))
+    resp = await client.post(
+        "/api/v1/products",
+        json={
+            "title": "Producto de prueba",
+            "description": "Descripción de prueba",
+            "condition": "good",
+            "sale_type": "fixed",
+            "price": "50.00",
+            "categories": ["otros"],
+            "image_urls": [],
+        },
+        headers=_auth(token),
+    )
     assert resp.status_code == 201
     return resp.json()
 
 
 # ─── acceso sin permisos ─────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_moderation_no_auth(client: AsyncClient):
@@ -72,6 +80,7 @@ async def test_moderation_client_role_forbidden(client: AsyncClient):
 
 
 # ─── endpoints de moderación ─────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_moderator_list_alerts(client: AsyncClient, session):
@@ -102,7 +111,7 @@ async def test_moderator_remove_product(client: AsyncClient, session):
     assert resp.status_code == 204
 
     # El producto ya no aparece en el listado público (filtrado por status=active)
-    listing = await client.get(f"/api/v1/products?q=prueba")
+    listing = await client.get("/api/v1/products?q=prueba")
     active_ids = [p["id"] for p in listing.json()["items"]]
     assert product["id"] not in active_ids
 
@@ -123,6 +132,7 @@ async def test_resolve_alert_invalid_resolution(client: AsyncClient, session):
 
 
 # ─── doble valoración ────────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_double_review_returns_409(client: AsyncClient):

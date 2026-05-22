@@ -11,12 +11,15 @@ def _uid() -> str:
 
 async def _register(client: AsyncClient) -> str:
     uid = _uid()
-    resp = await client.post("/api/v1/auth/register", json={
-        "email": f"user_{uid}@test.com",
-        "username": f"user_{uid}",
-        "password": "password123",
-        "full_name": "Test User",
-    })
+    resp = await client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": f"user_{uid}@test.com",
+            "username": f"user_{uid}",
+            "password": "password123",
+            "full_name": "Test User",
+        },
+    )
     assert resp.status_code == 201
     return resp.json()["access_token"]
 
@@ -26,21 +29,26 @@ def _auth(token: str) -> dict:
 
 
 async def _create_auction(client: AsyncClient, token: str, ends_at: datetime) -> dict:
-    resp = await client.post("/api/v1/products", json={
-        "title": "Guitarra eléctrica",
-        "description": "Fender Stratocaster 2019",
-        "condition": "good",
-        "sale_type": "auction",
-        "price": "200.00",
-        "categories": ["musica"],
-        "image_urls": [],
-        "ends_at": ends_at.isoformat(),
-    }, headers=_auth(token))
+    resp = await client.post(
+        "/api/v1/products",
+        json={
+            "title": "Guitarra eléctrica",
+            "description": "Fender Stratocaster 2019",
+            "condition": "good",
+            "sale_type": "auction",
+            "price": "200.00",
+            "categories": ["musica"],
+            "image_urls": [],
+            "ends_at": ends_at.isoformat(),
+        },
+        headers=_auth(token),
+    )
     assert resp.status_code == 201
     return resp.json()
 
 
 # ─── get auction ─────────────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_get_auction_not_found(client: AsyncClient):
@@ -61,6 +69,7 @@ async def test_get_auction_ok(client: AsyncClient):
 
 
 # ─── place bid ───────────────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_bid_ok(client: AsyncClient):
