@@ -98,6 +98,7 @@ export default function ProductDetail() {
       const found = r.data.find((item) => item.product_id === product.id)
       if (found) { setWished(true); setWishItemId(found.id) }
     }).catch(() => null)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, product?.id])
 
   if (loading) return (

@@ -1,12 +1,12 @@
 from logging.config import fileConfig
 
+import app.models  # noqa: F401 — registers all table models with SQLModel.metadata
+from alembic import context
 from sqlalchemy import pool
 from sqlalchemy.ext.asyncio import async_engine_from_config
-from alembic import context
 from sqlmodel import SQLModel
 
 from app.core.config import settings
-import app.models  # noqa: F401 — registers all table models with SQLModel.metadata
 
 config = context.config
 config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
