@@ -56,7 +56,7 @@ REVIEWS = [
         "order_product_title": "Bicicleta de montaña Trek Marlin 5",
         "reviewer_idx": 0,
         "rating": 5,
-        "comment": "Todo perfecto, la bici llegó tal y como estaba descrita. Carlos muy majo y puntual.",
+        "comment": "Todo perfecto, la bici llegó tal y como estaba descrita. Carlos muy majo.",
     },
     {
         "order_product_title": "Bicicleta de montaña Trek Marlin 5",
@@ -91,7 +91,7 @@ CONVERSATIONS = [
         "product_title": "iPhone 13 Pro 256GB — Sierra Blue",
         "messages": [
             (0, "Hola! Sigue disponible el iPhone? Me interesa mucho"),
-            (1, "Sí, sigue disponible! Está en perfecto estado, batería al 94% como pone en el anuncio."),
+            (1, "Sí, disponible! Perfecto estado, batería al 94% como pone en el anuncio."),
             (0, "Genial. ¿Tiene algún arañazo o golpe que no salga en las fotos?"),
             (1, "Ninguno, lo he llevado siempre con funda. Viene con la caja original y todo."),
             (0, "Perfecto, me lo quedo. ¿Cuándo podríamos quedar?"),
@@ -117,7 +117,7 @@ CONVERSATIONS = [
         "product_title": "Guitarra eléctrica Fender Player Stratocaster",
         "messages": [
             (1, "Hola! Vi tu anuncio de la Fender, ¿qué amplificador usabas con ella?"),
-            (2, "Hola! La usaba con un Fender Blues Junior. No está incluido pero si te interesa también lo tengo."),
+            (2, "La usaba con un Fender Blues Junior. No incluido, pero si te interesa lo tengo."),
             (1, "Qué bien! ¿Cuánto pedirías por el ampli?"),
             (2, "Por 150€ te lo dejo, está en buen estado. Los dos juntos por 650€ si quieres."),
             (1, "Me lo pienso y te digo. La guitarra seguro que sí."),
