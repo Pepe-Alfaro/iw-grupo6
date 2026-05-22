@@ -21,4 +21,6 @@ export const usersApi = {
 
   markNotificationsRead: () =>
     client.patch<{ updated: number }>('/users/me/notifications/read'),
+
+  deleteAccount: () => client.delete('/users/me'),
 }

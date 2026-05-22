@@ -108,6 +108,7 @@ export default function Profile() {
   const [payingId, setPayingId] = useState<number | null>(null)
   const [editOpen, setEditOpen] = useState(false)
   const setStoreUser = useAuthStore((s) => s.setUser)
+  const logout = useAuthStore((s) => s.logout)
 
   const { data: listingsData, loading: listingsLoading } = useProducts(
     profileId ? { seller_id: profileId, size: 20 } : {}
@@ -353,6 +354,10 @@ export default function Profile() {
           onSuccess={(updated) => {
             setUser(updated)
             setStoreUser(updated)
+          }}
+          onDelete={() => {
+            logout()
+            navigate('/')
           }}
         />
       )}
