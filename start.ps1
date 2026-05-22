@@ -48,7 +48,8 @@ if (-not (Test-Path $envFile)) {
         "MAX_IMAGE_SIZE_MB=5",
         'CORS_ORIGINS=["http://localhost:5173"]'
     )
-    $envContent | Out-File -FilePath $envFile -Encoding utf8
+    $utf8NoBom = [System.Text.UTF8Encoding]::new($false)
+    [System.IO.File]::WriteAllLines($envFile, $envContent, $utf8NoBom)
     Write-Ok "backend\.env creado"
 } else {
     Write-Skip "backend\.env ya existe, se omite"
