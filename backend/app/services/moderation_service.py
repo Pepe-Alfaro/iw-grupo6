@@ -4,6 +4,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.models.price_alert import PriceAlert
 from app.models.product import Product, ProductCategory, ProductImage, ProductStatus
+from app.models.report import ProductReport
 from app.models.user import User
 from app.services.notification_service import notify, notify_wishlist_users
 
@@ -129,6 +130,46 @@ async def list_all_products(session: AsyncSession) -> list:
             }
         )
     return result
+
+
+async def list_reports(session: AsyncSession) -> list:
+    reports = (
+        (
+            await session.execute(
+                sa_select(ProductReport)
+                .where(ProductReport.reviewed == False)  # noqa: E712
+                .order_by(ProductReport.created_at.desc())
+            )
+        )
+        .scalars()
+        .all()
+    )
+
+    result = []
+    for r in reports:
+        product = await session.get(Product, r.product_id)
+        reporter = await session.get(User, r.reporter_id)
+        result.append(
+            {
+                "id": r.id,
+                "reason": r.reason,
+                "comment": r.comment,
+                "created_at": r.created_at.isoformat(),
+                "product_id": r.product_id,
+                "product_title": product.title if product else None,
+                "reporter_username": reporter.username if reporter else None,
+            }
+        )
+    return result
+
+
+async def mark_report_reviewed(report_id: int, session: AsyncSession) -> None:
+    report = await session.get(ProductReport, report_id)
+    if not report:
+        raise HTTPException(status_code=404, detail="Denuncia no encontrada")
+    report.reviewed = True
+    session.add(report)
+    await session.commit()
 
 
 async def remove_product(product_id: int, session: AsyncSession) -> None:

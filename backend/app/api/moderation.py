@@ -47,3 +47,20 @@ async def remove_product(
     _mod: User = Depends(require_moderator),
 ):
     await moderation_service.remove_product(product_id, session)
+
+
+@router.get("/reports")
+async def list_reports(
+    session: AsyncSession = Depends(get_session),
+    _mod: User = Depends(require_moderator),
+):
+    return await moderation_service.list_reports(session)
+
+
+@router.patch("/reports/{report_id}/review", status_code=204)
+async def review_report(
+    report_id: int,
+    session: AsyncSession = Depends(get_session),
+    _mod: User = Depends(require_moderator),
+):
+    await moderation_service.mark_report_reviewed(report_id, session)

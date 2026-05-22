@@ -12,6 +12,7 @@ from app.core.database import get_session
 from app.core.dependencies import get_current_user
 from app.core.upload import save_upload
 from app.models.product import Product, ProductCondition, SaleType
+from app.models.report import ProductReport
 from app.models.user import User, UserRole
 from app.services import product_service
 from app.services.notification_service import notify
@@ -139,6 +140,14 @@ async def report_product(
     notif_body = f"Motivo: {body.reason}"
     if body.comment:
         notif_body += f"\n{body.comment}"
+    session.add(
+        ProductReport(
+            product_id=product_id,
+            reporter_id=current_user.id,
+            reason=body.reason,
+            comment=body.comment,
+        )
+    )
     for mod in mods:
         await notify(mod.id, notif_title, notif_body, session)
     await session.commit()

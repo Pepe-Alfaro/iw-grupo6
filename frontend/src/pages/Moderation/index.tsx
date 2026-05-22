@@ -1,18 +1,19 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { AlertTriangle, List, CheckCircle, XCircle, Trash2 } from 'lucide-react'
+import { AlertTriangle, List, CheckCircle, XCircle, Trash2, Flag } from 'lucide-react'
 import { Badge } from '../../components/ui/Badge'
 import { Button } from '../../components/ui/Button'
 import { useToast } from '../../components/ui/Toast'
 import { useAuthStore } from '../../store/authStore'
 import { fmtPrice, fmtDate } from '../../utils/format'
 import { moderationApi } from '../../api/moderationApi'
-import type { PriceAlert, ModerationProduct } from '../../api/moderationApi'
+import type { PriceAlert, ModerationProduct, ProductReport } from '../../api/moderationApi'
 
 type AlertItem = PriceAlert
 type ProductRow = ModerationProduct
+type ReportItem = ProductReport
 
-type View = 'alerts' | 'products'
+type View = 'alerts' | 'products' | 'reports'
 
 const STATUS_TONE: Record<string, 'amber' | 'success' | 'danger' | 'neutral' | 'amberSoft'> = {
   active: 'success',
@@ -28,6 +29,7 @@ export default function Moderation() {
   const [view, setView] = useState<View>('alerts')
   const [alerts, setAlerts] = useState<AlertItem[]>([])
   const [products, setProducts] = useState<ProductRow[]>([])
+  const [reports, setReports] = useState<ReportItem[]>([])
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
@@ -37,9 +39,14 @@ export default function Moderation() {
         .then((r) => setAlerts(r.data))
         .catch(() => null)
         .finally(() => setLoading(false))
-    } else {
+    } else if (view === 'products') {
       moderationApi.listProducts()
         .then((r) => setProducts(r.data))
+        .catch(() => null)
+        .finally(() => setLoading(false))
+    } else {
+      moderationApi.listReports()
+        .then((r) => setReports(r.data))
         .catch(() => null)
         .finally(() => setLoading(false))
     }
@@ -65,8 +72,19 @@ export default function Moderation() {
     }
   }
 
+  async function dismissReport(id: number) {
+    try {
+      await moderationApi.reviewReport(id)
+      setReports((prev) => prev.filter((r) => r.id !== id))
+      toast({ kind: 'success', title: 'Denuncia marcada como revisada' })
+    } catch {
+      toast({ kind: 'error', title: 'Error al procesar la denuncia' })
+    }
+  }
+
   const NAV = [
     { id: 'alerts' as View, label: 'Alertas de precio', icon: AlertTriangle, count: alerts.length },
+    { id: 'reports' as View, label: 'Denuncias', icon: Flag, count: reports.length },
     { id: 'products' as View, label: 'Todos los anuncios', icon: List, count: null },
   ]
 
@@ -197,6 +215,76 @@ export default function Moderation() {
                       </div>
                     )
                   })}
+                </div>
+              )}
+            </>
+          )}
+
+          {/* ── Reports view ── */}
+          {view === 'reports' && (
+            <>
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h1 className="text-2xl font-bold text-ink-900">Denuncias de usuarios</h1>
+                  <p className="text-[13px] text-ink-600 mt-0.5">Denuncias pendientes de revisar</p>
+                </div>
+              </div>
+
+              {loading ? (
+                <div className="space-y-3">
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <div key={i} className="skeleton h-24 rounded-card" />
+                  ))}
+                </div>
+              ) : reports.length === 0 ? (
+                <div className="text-center py-20">
+                  <CheckCircle size={56} strokeWidth={1} className="mx-auto text-success mb-4" />
+                  <p className="text-xl font-semibold text-ink-900">Sin denuncias pendientes</p>
+                  <p className="text-ink-600 text-sm mt-1">Todo está en orden</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {reports.map((r) => (
+                    <div key={r.id} className="bg-white rounded-card border border-ink-200 p-5 shadow-card">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <Flag size={13} strokeWidth={1.5} className="text-danger flex-none" />
+                            <button
+                              className="font-semibold text-ink-900 hover:text-brand truncate text-left text-[14px]"
+                              onClick={() => navigate(`/products/${r.product_id}`)}
+                            >
+                              {r.product_title ?? `Producto #${r.product_id}`}
+                            </button>
+                          </div>
+                          <p className="text-[13px] text-ink-600">
+                            <span className="font-medium text-ink-900">{r.reason}</span>
+                            {r.comment && <span className="text-ink-400"> — {r.comment}</span>}
+                          </p>
+                          <p className="text-[12px] text-ink-400 mt-1">
+                            Denunciado por @{r.reporter_username ?? '—'} · {fmtDate(r.created_at)}
+                          </p>
+                        </div>
+                        <div className="flex gap-2 flex-none">
+                          <Button
+                            kind="outlineBrand"
+                            size="sm"
+                            onClick={() => navigate(`/products/${r.product_id}`)}
+                          >
+                            Ver anuncio
+                          </Button>
+                          <Button
+                            kind="ghost"
+                            size="sm"
+                            icon={<CheckCircle size={13} strokeWidth={2} />}
+                            onClick={() => dismissReport(r.id)}
+                          >
+                            Revisado
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
             </>

@@ -26,6 +26,16 @@ export interface ModerationProduct {
   seller_username: string | null
 }
 
+export interface ProductReport {
+  id: number
+  reason: string
+  comment: string | null
+  created_at: string
+  product_id: number
+  product_title: string | null
+  reporter_username: string | null
+}
+
 export const moderationApi = {
   listAlerts: () => client.get<PriceAlert[]>('/moderation/alerts'),
 
@@ -35,4 +45,8 @@ export const moderationApi = {
   listProducts: () => client.get<ModerationProduct[]>('/moderation/products'),
 
   deleteProduct: (id: number) => client.delete(`/moderation/products/${id}`),
+
+  listReports: () => client.get<ProductReport[]>('/moderation/reports'),
+
+  reviewReport: (id: number) => client.patch(`/moderation/reports/${id}/review`),
 }
