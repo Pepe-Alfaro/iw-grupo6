@@ -15,4 +15,10 @@ export const usersApi = {
 
   myTransactions: () =>
     client.get<(Order & { role: 'buyer' | 'seller'; product: { id: number; title: string } | null })[]>('/users/me/transactions'),
+
+  notifications: () =>
+    client.get<{ id: number; title: string; body: string | null; read: boolean; created_at: string }[]>('/users/me/notifications'),
+
+  markNotificationsRead: () =>
+    client.patch<{ updated: number }>('/users/me/notifications/read'),
 }

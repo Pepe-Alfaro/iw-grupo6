@@ -1,12 +1,15 @@
 from datetime import datetime
 from decimal import Decimal
+from pathlib import Path
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, UploadFile
 from pydantic import BaseModel
 from sqlmodel.ext.asyncio.session import AsyncSession
 
+from app.core.config import settings
 from app.core.database import get_session
 from app.core.dependencies import get_current_user
+from app.core.upload import save_upload
 from app.models.product import ProductCondition, SaleType
 from app.models.user import User
 from app.services import product_service
@@ -104,3 +107,13 @@ async def delete_product(
     current_user: User = Depends(get_current_user),
 ):
     await product_service.delete_product(product_id, current_user.id, session)
+
+
+@router.post("/upload-image", status_code=201)
+async def upload_image(
+    file: UploadFile,
+    current_user: User = Depends(get_current_user),
+):
+    upload_dir = Path(settings.UPLOAD_DIR) / "images"
+    filename = await save_upload(file, upload_dir)
+    return {"url": f"/uploads/images/{filename}"}

@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
     PRICE_ALERT_THRESHOLD_PCT: float = 30.0
     MAX_IMAGE_SIZE_MB: int = 5
+    UPLOAD_DIR: str = "uploads"
     CORS_ORIGINS: list[str] = ["http://localhost:5173"]
 
 

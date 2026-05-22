@@ -6,6 +6,7 @@ from app.core.database import get_session
 from app.core.dependencies import get_current_user
 from app.models.user import User
 from app.services import user_service
+from app.services.notification_service import list_notifications, mark_all_read
 
 router = APIRouter(prefix="/users", tags=["users"])
 
@@ -50,6 +51,23 @@ async def get_my_transactions(
     current_user: User = Depends(get_current_user),
 ):
     return await user_service.get_my_transactions(current_user.id, session)
+
+
+@router.get("/me/notifications")
+async def get_notifications(
+    session: AsyncSession = Depends(get_session),
+    current_user: User = Depends(get_current_user),
+):
+    return await list_notifications(current_user.id, session)
+
+
+@router.patch("/me/notifications/read", status_code=200)
+async def mark_notifications_read(
+    session: AsyncSession = Depends(get_session),
+    current_user: User = Depends(get_current_user),
+):
+    updated = await mark_all_read(current_user.id, session)
+    return {"updated": updated}
 
 
 @router.get("/{user_id}")

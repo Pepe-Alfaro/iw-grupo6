@@ -37,4 +37,12 @@ export const productsApi = {
     client.put<Product>(`/products/${id}`, data),
 
   delete: (id: number) => client.delete(`/products/${id}`),
+
+  uploadImage: (file: File) => {
+    const fd = new FormData()
+    fd.append('file', file)
+    return client.post<{ url: string }>('/products/upload-image', fd, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+  },
 }

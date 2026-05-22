@@ -5,6 +5,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from app.models.price_alert import PriceAlert
 from app.models.product import Product, ProductCategory, ProductImage, ProductStatus
 from app.models.user import User
+from app.services.notification_service import notify, notify_wishlist_users
 
 
 async def list_alerts(session: AsyncSession) -> list:
@@ -79,6 +80,30 @@ async def resolve_alert(alert_id: int, resolution: str, mod_id: int, session: As
     alert.resolved_by = mod_id
     session.add(alert)
     await session.commit()
+
+    if product:
+        if resolution == "approved":
+            await notify(
+                product.seller_id,
+                "Anuncio aprobado",
+                f'Tu anuncio "{product.title}" ha sido revisado y publicado.',
+                session,
+            )
+            await notify_wishlist_users(
+                product.id,
+                f"Disponible: {product.title}",
+                f"Un artículo de tu wishlist ya está a la venta por {product.price} €",
+                session,
+            )
+        else:
+            await notify(
+                product.seller_id,
+                "Anuncio retirado",
+                f'Tu anuncio "{product.title}" ha sido retirado por precio inusual.',
+                session,
+            )
+        await session.commit()
+
     return {"id": alert.id, "resolution": alert.resolution}
 
 
@@ -112,4 +137,11 @@ async def remove_product(product_id: int, session: AsyncSession) -> None:
         raise HTTPException(status_code=404, detail="Producto no encontrado")
     product.status = ProductStatus.REMOVED
     session.add(product)
+    await session.commit()
+    await notify(
+        product.seller_id,
+        "Anuncio eliminado por moderación",
+        f'Tu anuncio "{product.title}" ha sido eliminado por el equipo de moderación.',
+        session,
+    )
     await session.commit()

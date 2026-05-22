@@ -3,6 +3,7 @@ from sqlalchemy import or_
 from sqlmodel import select as sa_select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
+from app.core.crypto import decrypt, encrypt
 from app.models.message import Conversation, Message
 from app.models.product import Product
 from app.models.user import User
@@ -22,7 +23,7 @@ def _fmt_message(m: Message) -> dict:
         "id": m.id,
         "conversation_id": m.conversation_id,
         "sender_id": m.sender_id,
-        "content": m.content,
+        "content": decrypt(m.content),
         "sent_at": m.sent_at.isoformat(),
         "read": m.read,
     }
@@ -171,7 +172,7 @@ async def send_message(
     if not content:
         raise HTTPException(status_code=400, detail="El mensaje no puede estar vacío")
 
-    msg = Message(conversation_id=conversation_id, sender_id=sender_id, content=content)
+    msg = Message(conversation_id=conversation_id, sender_id=sender_id, content=encrypt(content))
     session.add(msg)
     await session.commit()
     await session.refresh(msg)

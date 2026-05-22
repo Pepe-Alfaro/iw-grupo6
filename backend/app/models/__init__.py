@@ -12,6 +12,7 @@ from app.models.product import (
 )
 from app.models.review import Review
 from app.models.user import User, UserRole
+from app.models.notification import Notification
 from app.models.wishlist import WishlistItem
 
 __all__ = [
@@ -32,4 +33,5 @@ __all__ = [
     "WishlistItem",
     "Review",
     "PriceAlert",
+    "Notification",
 ]

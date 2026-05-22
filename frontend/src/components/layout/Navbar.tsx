@@ -1,24 +1,57 @@
 import { Heart, MessageCircle, Bell, Plus, ChevronDown, Search, User, ShoppingBag, Settings, LogOut, Shield } from 'lucide-react'
-import { useRef, useState, useEffect } from 'react'
+import { useRef, useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../../store/authStore'
+import { usersApi } from '../../api/usersApi'
 import { Button } from '../ui/Button'
 
 interface NavbarProps {
   mobile?: boolean
 }
 
+type Notif = { id: number; title: string; body: string | null; read: boolean; created_at: string }
+
 export function Navbar({ mobile = false }: NavbarProps) {
   const navigate = useNavigate()
   const user = useAuthStore((s) => s.user)
   const logout = useAuthStore((s) => s.logout)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [bellOpen, setBellOpen] = useState(false)
+  const [notifs, setNotifs] = useState<Notif[]>([])
   const menuRef = useRef<HTMLDivElement>(null)
+  const bellRef = useRef<HTMLDivElement>(null)
+
+  const unread = notifs.filter((n) => !n.read).length
+
+  const fetchNotifs = useCallback(async () => {
+    if (!user) return
+    try {
+      const { data } = await usersApi.notifications()
+      setNotifs(data)
+    } catch { /* ignore */ }
+  }, [user])
+
+  useEffect(() => {
+    fetchNotifs()
+    const id = setInterval(fetchNotifs, 30_000)
+    return () => clearInterval(id)
+  }, [fetchNotifs])
+
+  async function openBell() {
+    setBellOpen((v) => !v)
+    if (!bellOpen && unread > 0) {
+      await usersApi.markNotificationsRead()
+      setNotifs((ns) => ns.map((n) => ({ ...n, read: true })))
+    }
+  }
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
         setMenuOpen(false)
+      }
+      if (bellRef.current && !bellRef.current.contains(e.target as Node)) {
+        setBellOpen(false)
       }
     }
     document.addEventListener('mousedown', handleClickOutside)
@@ -99,7 +132,42 @@ export function Navbar({ mobile = false }: NavbarProps) {
         <div className="flex items-center gap-1">
           <IconBtn icon={<Heart size={20} strokeWidth={1.5} />} onClick={() => navigate('/wishlist')} />
           <IconBtn icon={<MessageCircle size={20} strokeWidth={1.5} />} onClick={() => navigate('/messages')} />
-          <IconBtn icon={<Bell size={20} strokeWidth={1.5} />} />
+          {user ? (
+            <div className="relative" ref={bellRef}>
+              <button
+                onClick={openBell}
+                className="w-10 h-10 rounded-full flex items-center justify-center text-ink-900 hover:bg-ink-50 relative"
+              >
+                <Bell size={20} strokeWidth={1.5} />
+                {unread > 0 && (
+                  <span className="absolute top-1 right-1 w-4 h-4 bg-danger text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                    {unread > 9 ? '9+' : unread}
+                  </span>
+                )}
+              </button>
+              {bellOpen && (
+                <div className="absolute right-0 top-full mt-2 w-80 bg-white rounded-card shadow-modal border border-ink-200 z-50 fade-in overflow-hidden">
+                  <div className="px-3 py-2 border-b border-ink-200">
+                    <p className="text-[13px] font-semibold text-ink-900">Notificaciones</p>
+                  </div>
+                  {notifs.length === 0 ? (
+                    <p className="text-[13px] text-ink-400 text-center py-6">Sin notificaciones</p>
+                  ) : (
+                    <div className="max-h-72 overflow-y-auto divide-y divide-ink-100">
+                      {notifs.map((n) => (
+                        <div key={n.id} className={`px-3 py-2.5 ${n.read ? '' : 'bg-brand-tint2'}`}>
+                          <p className="text-[13px] font-semibold text-ink-900">{n.title}</p>
+                          {n.body && <p className="text-[12px] text-ink-600 mt-0.5">{n.body}</p>}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          ) : (
+            <IconBtn icon={<Bell size={20} strokeWidth={1.5} />} />
+          )}
           <div className="ml-2">
             <Button icon={<Plus size={16} strokeWidth={1.5} />} onClick={() => navigate('/publish')}>
               Publicar

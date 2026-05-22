@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Check, ChevronRight, ImagePlus, Plus, Trash2, AlertCircle } from 'lucide-react'
+import { Check, ChevronRight, ImagePlus, Trash2, AlertCircle, Loader2 } from 'lucide-react'
 import { Navbar } from '../../components/layout/Navbar'
 import { BottomNav } from '../../components/layout/BottomNav'
 import { Button } from '../../components/ui/Button'
@@ -231,59 +231,88 @@ function Step2({ form, setForm }: { form: FormState; setForm: React.Dispatch<Rea
 
 // ─── Step 3: photos ───────────────────────────────────────────────────────────
 function Step3({ form, setForm }: { form: FormState; setForm: React.Dispatch<React.SetStateAction<FormState>> }) {
-  const setUrl = (i: number, val: string) =>
-    setForm((f) => { const u = [...f.image_urls]; u[i] = val; return { ...f, image_urls: u } })
+  const inputRef = useRef<HTMLInputElement>(null)
+  const [uploading, setUploading] = useState(false)
+  const toast = useToast()
 
-  const addSlot = () =>
-    setForm((f) => ({ ...f, image_urls: [...f.image_urls, ''] }))
-
-  const removeSlot = (i: number) =>
+  const removeImage = (i: number) =>
     setForm((f) => ({ ...f, image_urls: f.image_urls.filter((_, idx) => idx !== i) }))
+
+  async function handleFiles(files: FileList | null) {
+    if (!files) return
+    const remaining = 5 - form.image_urls.length
+    const toUpload = Array.from(files).slice(0, remaining)
+    if (toUpload.length === 0) return
+
+    setUploading(true)
+    try {
+      const urls: string[] = []
+      for (const file of toUpload) {
+        const { data } = await productsApi.uploadImage(file)
+        urls.push(data.url)
+      }
+      setForm((f) => ({ ...f, image_urls: [...f.image_urls, ...urls] }))
+    } catch {
+      toast({ kind: 'error', title: 'Error al subir la imagen' })
+    } finally {
+      setUploading(false)
+    }
+  }
 
   return (
     <div className="space-y-4">
       <p className="text-[13px] text-ink-600">
-        Pega la URL de las imágenes de tu artículo. La primera imagen será la portada.
+        Sube las fotos de tu artículo (JPEG, PNG o WebP, máx. {5}MB). La primera será la portada.
       </p>
-      {form.image_urls.map((url, i) => (
-        <div key={i} className="flex gap-2 items-start">
-          <div className="w-16 h-16 rounded-lg border-2 border-ink-200 overflow-hidden flex-none bg-ink-100">
-            {url ? (
-              <img src={url} alt="" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center text-ink-400">
-                <ImagePlus size={20} strokeWidth={1.5} />
-              </div>
-            )}
-          </div>
-          <div className="flex-1">
-            <input
-              type="url"
-              placeholder={`URL imagen ${i + 1}${i === 0 ? ' (portada)' : ''}`}
-              value={url}
-              onChange={(e) => setUrl(i, e.target.value)}
-              className="w-full h-10 border border-ink-200 rounded-lg px-3 text-[13px] text-ink-900 outline-none focus:border-brand transition-colors"
-            />
-          </div>
-          {form.image_urls.length > 1 && (
-            <button
-              type="button"
-              onClick={() => removeSlot(i)}
-              className="h-10 w-10 flex items-center justify-center rounded-lg border border-ink-200 text-ink-400 hover:text-danger hover:border-danger transition-colors flex-none"
-            >
-              <Trash2 size={14} strokeWidth={1.5} />
-            </button>
-          )}
+
+      {form.image_urls.length > 0 && (
+        <div className="grid grid-cols-3 gap-3">
+          {form.image_urls.map((url, i) => (
+            <div key={i} className="relative aspect-square rounded-lg overflow-hidden border border-ink-200 bg-ink-100">
+              <img src={url} alt="" className="w-full h-full object-cover" />
+              {i === 0 && (
+                <span className="absolute top-1 left-1 bg-brand text-white text-[10px] font-bold px-1.5 py-0.5 rounded">
+                  Portada
+                </span>
+              )}
+              <button
+                type="button"
+                onClick={() => removeImage(i)}
+                className="absolute top-1 right-1 w-6 h-6 bg-black/50 hover:bg-danger rounded-full flex items-center justify-center text-white transition-colors"
+              >
+                <Trash2 size={11} strokeWidth={2} />
+              </button>
+            </div>
+          ))}
         </div>
-      ))}
+      )}
+
       {form.image_urls.length < 5 && (
-        <button
-          type="button"
-          onClick={addSlot}
-          className="flex items-center gap-2 text-[13px] text-brand font-medium hover:underline"
-        >
-          <Plus size={14} strokeWidth={2} /> Añadir imagen
-        </button>
+        <>
+          <input
+            ref={inputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/gif,image/webp"
+            multiple
+            className="hidden"
+            onChange={(e) => handleFiles(e.target.files)}
+          />
+          <button
+            type="button"
+            onClick={() => inputRef.current?.click()}
+            disabled={uploading}
+            className="w-full h-24 border-2 border-dashed border-ink-200 rounded-lg flex flex-col items-center justify-center gap-2 text-ink-400 hover:border-brand hover:text-brand transition-colors disabled:opacity-50"
+          >
+            {uploading ? (
+              <Loader2 size={24} strokeWidth={1.5} className="animate-spin" />
+            ) : (
+              <ImagePlus size={24} strokeWidth={1.5} />
+            )}
+            <span className="text-[13px] font-medium">
+              {uploading ? 'Subiendo…' : 'Haz clic o arrastra imágenes aquí'}
+            </span>
+          </button>
+        </>
       )}
     </div>
   )

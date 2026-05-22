@@ -7,6 +7,7 @@ from decimal import Decimal
 from sqlalchemy import and_
 from sqlmodel import select
 
+from app.core.crypto import encrypt
 from app.core.database import AsyncSessionLocal
 from app.core.security import hash_password
 from app.models.auction import Auction
@@ -702,7 +703,7 @@ async def seed() -> None:
                     Message(
                         conversation_id=conv.id,
                         sender_id=sender.id,
-                        content=content,
+                        content=encrypt(content),
                         sent_at=base_time + timedelta(minutes=i * 12),
                         read=True,
                     )

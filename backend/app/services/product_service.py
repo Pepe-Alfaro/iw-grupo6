@@ -19,6 +19,7 @@ from app.models.product import (
     SaleType,
 )
 from app.models.user import User
+from app.services.notification_service import notify_wishlist_users
 
 
 def _user_public(u: User) -> dict:
@@ -231,6 +232,16 @@ async def create_product(
 
     await session.commit()
     await session.refresh(product)
+
+    if status == ProductStatus.ACTIVE:
+        await notify_wishlist_users(
+            product.id,
+            f"Nuevo anuncio: {title}",
+            f"Un artículo de tu wishlist ya está disponible a {price} €",
+            session,
+        )
+        await session.commit()
+
     enriched = await enrich([product], session)
     return enriched[0]
 
