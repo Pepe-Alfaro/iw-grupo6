@@ -14,6 +14,11 @@ class UserUpdate(BaseModel):
     full_name: str
 
 
+class PasswordChange(BaseModel):
+    current_password: str
+    new_password: str
+
+
 @router.get("/me")
 async def get_me(current_user: User = Depends(get_current_user)):
     return user_service._public(current_user)
@@ -26,6 +31,17 @@ async def update_me(
     current_user: User = Depends(get_current_user),
 ):
     return await user_service.update_me(current_user.id, body.full_name, session)
+
+
+@router.patch("/me/password", status_code=204)
+async def change_password(
+    body: PasswordChange,
+    session: AsyncSession = Depends(get_session),
+    current_user: User = Depends(get_current_user),
+):
+    await user_service.change_password(
+        current_user.id, body.current_password, body.new_password, session
+    )
 
 
 @router.get("/me/transactions")

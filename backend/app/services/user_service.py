@@ -3,6 +3,7 @@ from sqlalchemy import or_
 from sqlmodel import select as sa_select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
+from app.core.security import hash_password, verify_password
 from app.models.order import Order, OrderStatus
 from app.models.product import Product
 from app.models.user import User
@@ -38,6 +39,19 @@ async def update_me(user_id: int, full_name: str, session: AsyncSession) -> dict
     session.add(user)
     await session.commit()
     return _public(user)
+
+
+async def change_password(
+    user_id: int, current_password: str, new_password: str, session: AsyncSession
+) -> None:
+    user = await session.get(User, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    if not verify_password(current_password, user.hashed_password):
+        raise HTTPException(status_code=400, detail="La contraseña actual es incorrecta")
+    user.hashed_password = hash_password(new_password)
+    session.add(user)
+    await session.commit()
 
 
 async def get_my_transactions(current_user_id: int, session: AsyncSession) -> list:
