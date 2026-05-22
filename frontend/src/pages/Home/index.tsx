@@ -1,20 +1,21 @@
 import { useNavigate } from 'react-router-dom'
-import { Search } from 'lucide-react'
+import { Search, Shirt, Smartphone, Sofa, Trophy, BookOpen, Puzzle, Sparkles, Car } from 'lucide-react'
 import { Navbar } from '../../components/layout/Navbar'
 import { BottomNav } from '../../components/layout/BottomNav'
 import { ProductCard, SkeletonCard } from '../../components/ProductCard'
 import { useProducts } from '../../hooks/useProducts'
 import { useAuthStore } from '../../store/authStore'
+import type { LucideIcon } from 'lucide-react'
 
-const CATEGORIES = [
-  { id: 'ropa', label: 'Ropa', emoji: '👕' },
-  { id: 'electrónica', label: 'Electrónica', emoji: '📱' },
-  { id: 'hogar', label: 'Hogar', emoji: '🛋' },
-  { id: 'deportes', label: 'Deportes', emoji: '⚽' },
-  { id: 'libros', label: 'Libros', emoji: '📚' },
-  { id: 'juguetes', label: 'Juguetes', emoji: '🧩' },
-  { id: 'belleza', label: 'Belleza', emoji: '✨' },
-  { id: 'motor', label: 'Motor', emoji: '🚗' },
+const CATEGORIES: { id: string; label: string; Icon: LucideIcon }[] = [
+  { id: 'ropa', label: 'Ropa', Icon: Shirt },
+  { id: 'electrónica', label: 'Electrónica', Icon: Smartphone },
+  { id: 'hogar', label: 'Hogar', Icon: Sofa },
+  { id: 'deportes', label: 'Deportes', Icon: Trophy },
+  { id: 'libros', label: 'Libros', Icon: BookOpen },
+  { id: 'juguetes', label: 'Juguetes', Icon: Puzzle },
+  { id: 'belleza', label: 'Belleza', Icon: Sparkles },
+  { id: 'motor', label: 'Motor', Icon: Car },
 ]
 
 function ProductGrid({ title, link, filters }: { title: string; link?: string; filters: object }) {
@@ -94,7 +95,7 @@ export default function Home() {
                   onClick={() => navigate(`/search?category=${cat.id}`)}
                   className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-white/20 hover:bg-white/30 text-white text-[13px] font-medium transition flex-none"
                 >
-                  <span>{cat.emoji}</span> {cat.label}
+                  {cat.label}
                 </button>
               ))}
             </div>
@@ -123,7 +124,7 @@ export default function Home() {
                 onClick={() => navigate(`/search?category=${cat.id}`)}
                 className="flex-none flex flex-col items-center justify-center gap-2 w-28 h-24 rounded-card bg-brand-tint hover:bg-brand-tint2 transition border border-brand/10"
               >
-                <span className="text-3xl">{cat.emoji}</span>
+                <cat.Icon size={24} className="text-brand" strokeWidth={1.5} />
                 <span className="text-[12px] font-semibold text-brand-dark">{cat.label}</span>
               </button>
             ))}
