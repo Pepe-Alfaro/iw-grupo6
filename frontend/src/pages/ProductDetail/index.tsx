@@ -377,14 +377,10 @@ export default function ProductDetail() {
             </div>
 
             {/* Report section */}
-            {!isSeller && (
-              <div>
+            <div>
                 <button
                   type="button"
-                  onClick={() => {
-                    if (!user) { navigate('/auth'); return }
-                    setReportOpen((prev) => !prev)
-                  }}
+                  onClick={() => setReportOpen((prev) => !prev)}
                   className="text-[12px] text-ink-400 hover:text-danger underline-offset-2 hover:underline"
                 >
                   {reportOpen ? 'Cancelar reporte' : 'Reportar anuncio'}
@@ -441,7 +437,6 @@ export default function ProductDetail() {
                   </div>
                 )}
               </div>
-            )}
 
           </div>
         </div>
