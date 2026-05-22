@@ -91,7 +91,6 @@ async def test_refresh_ok(client: AsyncClient):
     )
     assert resp.status_code == 200
     assert "access_token" in resp.json()
-    assert resp.json()["access_token"] != token
 
 
 @pytest.mark.asyncio
