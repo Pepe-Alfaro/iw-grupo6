@@ -49,7 +49,7 @@ function AuctionTimer({ endsAt }: { endsAt: string }) {
 }
 
 // ─── Seller card ────────────────────────────────────────────────────────────
-function SellerCard({ seller, onMessage }: { seller: NonNullable<import('../../types').Product['seller']>; onMessage: () => void }) {
+function SellerCard({ seller, onMessage, canMessage }: { seller: NonNullable<import('../../types').Product['seller']>; onMessage: () => void; canMessage: boolean }) {
   return (
     <div className="border border-ink-200 rounded-card p-4">
       <div className="flex items-center gap-3">
@@ -64,9 +64,11 @@ function SellerCard({ seller, onMessage }: { seller: NonNullable<import('../../t
             <span className="text-ink-400">· {seller.total_reviews} valoraciones</span>
           </div>
         </div>
-        <Button kind="ghost" size="sm" icon={<MessageCircle size={14} strokeWidth={1.5} />} onClick={onMessage}>
-          Mensaje
-        </Button>
+        {canMessage && (
+          <Button kind="ghost" size="sm" icon={<MessageCircle size={14} strokeWidth={1.5} />} onClick={onMessage}>
+            Mensaje
+          </Button>
+        )}
       </div>
     </div>
   )
@@ -285,7 +287,7 @@ export default function ProductDetail() {
       <hr className="border-ink-200" />
 
       {product.seller && (
-        <SellerCard seller={product.seller} onMessage={handleMessage} />
+        <SellerCard seller={product.seller} onMessage={handleMessage} canMessage={!isSeller} />
       )}
 
       <hr className="border-ink-200" />
