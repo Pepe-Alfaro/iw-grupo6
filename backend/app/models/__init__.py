@@ -1,5 +1,6 @@
 from app.models.auction import Auction, Bid
 from app.models.message import Conversation, Message
+from app.models.notification import Notification
 from app.models.order import Order, OrderStatus
 from app.models.price_alert import PriceAlert
 from app.models.product import (
@@ -12,7 +13,6 @@ from app.models.product import (
 )
 from app.models.review import Review
 from app.models.user import User, UserRole
-from app.models.notification import Notification
 from app.models.wishlist import WishlistItem
 
 __all__ = [
