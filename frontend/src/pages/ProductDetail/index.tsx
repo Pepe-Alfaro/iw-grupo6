@@ -11,10 +11,18 @@ import { auctionsApi } from '../../api/auctionsApi'
 import { ordersApi } from '../../api/ordersApi'
 import { wishlistApi } from '../../api/wishlistApi'
 import { messagesApi } from '../../api/messagesApi'
+import { productsApi } from '../../api/productsApi'
 import { useAuthStore } from '../../store/authStore'
 import { fmtPrice, conditionLabel } from '../../utils/format'
-import { ReportModal } from '../../components/ReportModal'
 import type { Auction } from '../../types'
+
+const REPORT_REASONS = [
+  'Precio engañoso o fraudulento',
+  'Producto prohibido o ilegal',
+  'Descripción falsa o engañosa',
+  'Spam o anuncio duplicado',
+  'Otro',
+]
 
 // ─── Auction countdown ──────────────────────────────────────────────────────
 function useCountdown(endsAt: string) {
@@ -88,6 +96,9 @@ export default function ProductDetail() {
   const [wishItemId, setWishItemId] = useState<number | null>(null)
   const [activeImgId, setActiveImgId] = useState<number | null>(null)
   const [reportOpen, setReportOpen] = useState(false)
+  const [reportReason, setReportReason] = useState('')
+  const [reportComment, setReportComment] = useState('')
+  const [reportLoading, setReportLoading] = useState(false)
 
   useEffect(() => {
     if (product?.sale_type === 'auction') {
@@ -175,6 +186,22 @@ export default function ProductDetail() {
       navigate(`/messages?conv=${data.id}`)
     } catch {
       navigate('/messages')
+    }
+  }
+
+  async function handleReport() {
+    if (!reportReason) return
+    setReportLoading(true)
+    try {
+      await productsApi.report(prod.id, reportReason, reportComment.trim() || undefined)
+      toast({ kind: 'success', title: 'Reporte enviado', body: 'El equipo de moderación lo revisará en breve.' })
+      setReportOpen(false)
+      setReportReason('')
+      setReportComment('')
+    } catch {
+      toast({ kind: 'error', title: 'Error al enviar el reporte' })
+    } finally {
+      setReportLoading(false)
     }
   }
 
@@ -303,12 +330,56 @@ export default function ProductDetail() {
       </div>
 
       {!isSeller && (
-        <button
-          onClick={() => { if (!user) { navigate('/auth'); return }; setReportOpen(true) }}
-          className="text-[12px] text-ink-400 hover:text-danger underline-offset-2 hover:underline"
-        >
-          Reportar anuncio
-        </button>
+        <div>
+          <button
+            onClick={() => {
+              if (!user) { navigate('/auth'); return }
+              setReportOpen((v) => !v)
+            }}
+            className="text-[12px] text-ink-400 hover:text-danger underline-offset-2 hover:underline"
+          >
+            {reportOpen ? 'Cancelar reporte' : 'Reportar anuncio'}
+          </button>
+
+          {reportOpen && (
+            <div className="mt-3 p-4 border border-ink-200 rounded-card bg-white">
+              <p className="text-[13px] font-semibold text-ink-900 mb-3">¿Por qué quieres reportar este anuncio?</p>
+              <div className="space-y-2 mb-3">
+                {REPORT_REASONS.map((r) => (
+                  <label key={r} className="flex items-center gap-2.5 cursor-pointer group">
+                    <input
+                      type="radio"
+                      name="report-reason"
+                      value={r}
+                      checked={reportReason === r}
+                      onChange={() => setReportReason(r)}
+                      className="accent-brand w-4 h-4 flex-none"
+                    />
+                    <span className={`text-[13px] transition-colors ${reportReason === r ? 'text-ink-900 font-medium' : 'text-ink-600 group-hover:text-ink-900'}`}>
+                      {r}
+                    </span>
+                  </label>
+                ))}
+              </div>
+              <textarea
+                value={reportComment}
+                onChange={(e) => setReportComment(e.target.value)}
+                maxLength={500}
+                rows={3}
+                placeholder="Detalles adicionales (opcional)…"
+                className="w-full border border-ink-200 rounded-lg px-3 py-2 text-[13px] text-ink-900 outline-none focus:border-brand transition-colors resize-none mb-3"
+              />
+              <div className="flex gap-2">
+                <Button kind="danger" size="sm" disabled={!reportReason} loading={reportLoading} onClick={handleReport}>
+                  Enviar reporte
+                </Button>
+                <Button kind="ghost" size="sm" onClick={() => { setReportOpen(false); setReportReason(''); setReportComment('') }}>
+                  Cancelar
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
       )}
     </div>
   )
@@ -370,12 +441,6 @@ export default function ProductDetail() {
       )}
 
       <div className="md:hidden"><BottomNav /></div>
-
-      <ReportModal
-        open={reportOpen}
-        onClose={() => setReportOpen(false)}
-        productId={prod.id}
-      />
     </div>
   )
 }
