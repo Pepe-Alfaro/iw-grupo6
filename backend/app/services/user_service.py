@@ -9,6 +9,20 @@ from app.models.product import Product
 from app.models.user import User
 
 
+async def delete_me(user_id: int, session: AsyncSession) -> None:
+    user = await session.get(User, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    user.email = f"deleted_{user_id}@deleted.invalid"
+    user.username = f"deleted_{user_id}"
+    user.full_name = "Usuario eliminado"
+    user.hashed_password = "!"
+    user.avatar_url = None
+    user.is_active = False
+    session.add(user)
+    await session.commit()
+
+
 def _public(u: User) -> dict:
     return {
         "id": u.id,

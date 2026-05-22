@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, status
 from pydantic import BaseModel
 from sqlmodel.ext.asyncio.session import AsyncSession
 
@@ -68,6 +68,14 @@ async def mark_notifications_read(
 ):
     updated = await mark_all_read(current_user.id, session)
     return {"updated": updated}
+
+
+@router.delete("/me", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_me(
+    session: AsyncSession = Depends(get_session),
+    current_user: User = Depends(get_current_user),
+):
+    await user_service.delete_me(current_user.id, session)
 
 
 @router.get("/{user_id}")

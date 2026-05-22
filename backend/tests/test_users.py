@@ -143,6 +143,22 @@ async def test_get_transactions_as_buyer(client: AsyncClient):
 
 
 @pytest.mark.asyncio
+async def test_delete_me_ok(client: AsyncClient):
+    token = await _register(client)
+    r = await client.delete("/api/v1/users/me", headers=_auth(token))
+    assert r.status_code == 204
+
+    me = await client.get("/api/v1/users/me", headers=_auth(token))
+    assert me.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_delete_me_unauthorized(client: AsyncClient):
+    r = await client.delete("/api/v1/users/me")
+    assert r.status_code == 401
+
+
+@pytest.mark.asyncio
 async def test_get_transactions_as_seller(client: AsyncClient):
     seller = await _register(client)
     buyer = await _register(client)

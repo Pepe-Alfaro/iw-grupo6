@@ -71,3 +71,30 @@ async def test_login_wrong_password(client: AsyncClient):
         },
     )
     assert resp.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_refresh_ok(client: AsyncClient):
+    reg = await client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": "refresh@example.com",
+            "username": "refreshuser",
+            "password": "pass123",
+            "full_name": "Refresh User",
+        },
+    )
+    token = reg.json()["access_token"]
+    resp = await client.post(
+        "/api/v1/auth/refresh",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert resp.status_code == 200
+    assert "access_token" in resp.json()
+    assert resp.json()["access_token"] != token
+
+
+@pytest.mark.asyncio
+async def test_refresh_no_token(client: AsyncClient):
+    resp = await client.post("/api/v1/auth/refresh")
+    assert resp.status_code == 401
