@@ -7,11 +7,13 @@ export function fmtPrice(amount: number | string): string {
 }
 
 export function fmtDate(iso: string): string {
-  return new Intl.DateTimeFormat('es-ES', { dateStyle: 'medium' }).format(new Date(iso))
+  const normalized = /[Z+\-]\d*$/.test(iso) ? iso : iso + 'Z'
+  return new Intl.DateTimeFormat('es-ES', { dateStyle: 'medium' }).format(new Date(normalized))
 }
 
 export function fmtRelative(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime()
+  const normalized = /[Z+\-]\d*$/.test(iso) ? iso : iso + 'Z'
+  const diff = Date.now() - new Date(normalized).getTime()
   const mins = Math.floor(diff / 60000)
   if (mins < 1) return 'ahora'
   if (mins < 60) return `hace ${mins}m`
