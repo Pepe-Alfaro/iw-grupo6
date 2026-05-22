@@ -24,6 +24,7 @@ alembic/versions/*.py
 node_modules/
 dist/
 .vite/
+snap.js
 
 # IDE
 .idea/
