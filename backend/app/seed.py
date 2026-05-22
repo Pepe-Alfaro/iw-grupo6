@@ -569,6 +569,37 @@ async def seed() -> None:
         await session.commit()
         print(f"Products created: {created} (skipped {len(PRODUCTS) - created} already existing)")
 
+        # Refresh auctions whose end time has passed so they're always live on re-seed
+        auctions_refreshed = 0
+        for p in PRODUCTS:
+            if p["sale_type"] != "auction":
+                continue
+            product = (
+                await session.exec(select(Product).where(Product.title == p["title"]))
+            ).one_or_none()
+            if not product:
+                continue
+            auction = (
+                await session.exec(select(Auction).where(Auction.product_id == product.id))
+            ).one_or_none()
+            if not auction:
+                continue
+            now = datetime.now(UTC).replace(tzinfo=None)
+            if auction.ends_at <= now or auction.is_closed:
+                hours = p.get("auction_hours", 72)
+                auction.ends_at = now + timedelta(hours=hours)
+                auction.is_closed = False
+                auction.current_bid = Decimal("0")
+                auction.current_bidder_id = None
+                product.status = ProductStatus.ACTIVE
+                session.add(auction)
+                session.add(product)
+                auctions_refreshed += 1
+
+        await session.commit()
+        if auctions_refreshed:
+            print(f"Auctions refreshed (end time reset): {auctions_refreshed}")
+
         # Reload all products by title for later references
         all_products: dict[str, Product] = {}
         for p in PRODUCTS:
@@ -685,6 +716,19 @@ async def seed() -> None:
                 )
             ).one_or_none()
             if exists:
+                # Re-encrypt messages in case SECRET_KEY changed
+                msgs = (
+                    await session.exec(
+                        select(Message).where(Message.conversation_id == exists.id)
+                    )
+                ).all()
+                base_time = datetime.now(UTC).replace(tzinfo=None) - timedelta(days=c["days_ago"])
+                for i, (msg, (sender_idx, content)) in enumerate(
+                    zip(msgs, c["messages"])
+                ):
+                    msg.content = encrypt(content)
+                    msg.sent_at = base_time + timedelta(minutes=i * 12)
+                    session.add(msg)
                 continue
 
             base_time = datetime.now(UTC).replace(tzinfo=None) - timedelta(days=c["days_ago"])

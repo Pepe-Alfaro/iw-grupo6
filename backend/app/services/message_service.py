@@ -19,11 +19,15 @@ def _fmt_user(u: User) -> dict:
 
 
 def _fmt_message(m: Message) -> dict:
+    try:
+        content = decrypt(m.content)
+    except Exception:
+        content = "[mensaje no disponible]"
     return {
         "id": m.id,
         "conversation_id": m.conversation_id,
         "sender_id": m.sender_id,
-        "content": decrypt(m.content),
+        "content": content,
         "sent_at": m.sent_at.isoformat(),
         "read": m.read,
     }
