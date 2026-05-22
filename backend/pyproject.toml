@@ -43,4 +43,4 @@ testpaths = ["tests"]
 
 [tool.coverage.run]
 source = ["app"]
-omit = ["tests/*", "alembic/*"]
+omit = ["tests/*", "alembic/*", "app/seed.py"]
