@@ -625,9 +625,7 @@ async def seed() -> None:
             if not order or order.status != OrderStatus.PAID:
                 continue
             reviewer = users[r["reviewer_idx"]]
-            reviewed_id = (
-                order.seller_id if reviewer.id == order.buyer_id else order.buyer_id
-            )
+            reviewed_id = order.seller_id if reviewer.id == order.buyer_id else order.buyer_id
             exists = (
                 await session.exec(
                     select(Review).where(
@@ -638,14 +636,16 @@ async def seed() -> None:
             if exists:
                 continue
 
-            session.add(Review(
-                order_id=order.id,
-                reviewer_id=reviewer.id,
-                reviewed_id=reviewed_id,
-                rating=r["rating"],
-                comment=r["comment"],
-                created_at=datetime.now(UTC).replace(tzinfo=None) - timedelta(days=1),
-            ))
+            session.add(
+                Review(
+                    order_id=order.id,
+                    reviewer_id=reviewer.id,
+                    reviewed_id=reviewed_id,
+                    rating=r["rating"],
+                    comment=r["comment"],
+                    created_at=datetime.now(UTC).replace(tzinfo=None) - timedelta(days=1),
+                )
+            )
             if reviewer.id == order.buyer_id:
                 order.buyer_reviewed = True
             else:
@@ -698,13 +698,15 @@ async def seed() -> None:
 
             for i, (sender_idx, content) in enumerate(c["messages"]):
                 sender = users[sender_idx]
-                session.add(Message(
-                    conversation_id=conv.id,
-                    sender_id=sender.id,
-                    content=content,
-                    sent_at=base_time + timedelta(minutes=i * 12),
-                    read=True,
-                ))
+                session.add(
+                    Message(
+                        conversation_id=conv.id,
+                        sender_id=sender.id,
+                        content=content,
+                        sent_at=base_time + timedelta(minutes=i * 12),
+                        read=True,
+                    )
+                )
             convs_created += 1
 
         await session.commit()
@@ -729,12 +731,14 @@ async def seed() -> None:
             ).one_or_none()
             if exists:
                 continue
-            session.add(WishlistItem(
-                user_id=user.id,
-                product_id=product.id,
-                notify=True,
-                created_at=datetime.now(UTC).replace(tzinfo=None) - timedelta(days=2),
-            ))
+            session.add(
+                WishlistItem(
+                    user_id=user.id,
+                    product_id=product.id,
+                    notify=True,
+                    created_at=datetime.now(UTC).replace(tzinfo=None) - timedelta(days=2),
+                )
+            )
             wishlist_created += 1
 
         await session.commit()
