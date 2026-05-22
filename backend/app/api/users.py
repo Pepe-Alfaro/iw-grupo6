@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
+from pydantic import BaseModel
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.core.database import get_session
@@ -9,14 +10,22 @@ from app.services import user_service
 router = APIRouter(prefix="/users", tags=["users"])
 
 
+class UserUpdate(BaseModel):
+    full_name: str
+
+
 @router.get("/me")
 async def get_me(current_user: User = Depends(get_current_user)):
     return user_service._public(current_user)
 
 
 @router.patch("/me")
-async def update_me(current_user: User = Depends(get_current_user)):
-    raise HTTPException(status_code=501, detail="Not implemented")
+async def update_me(
+    body: UserUpdate,
+    session: AsyncSession = Depends(get_session),
+    current_user: User = Depends(get_current_user),
+):
+    return await user_service.update_me(current_user.id, body.full_name, session)
 
 
 @router.get("/me/transactions")

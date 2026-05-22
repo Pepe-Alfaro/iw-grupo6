@@ -9,6 +9,7 @@ export interface ProductFilters {
   min_price?: number
   max_price?: number
   seller_id?: number
+  sort_by?: string
   page?: number
   size?: number
 }

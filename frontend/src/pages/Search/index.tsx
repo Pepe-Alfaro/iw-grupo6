@@ -38,6 +38,7 @@ export default function Search() {
     category: params.get('category') ?? '',
     condition: params.get('condition') ?? '',
     sale_type: params.get('sale_type') ?? '',
+    sort_by: params.get('sort_by') ?? '',
     min_price: params.get('min_price') ? Number(params.get('min_price')) : undefined,
     max_price: params.get('max_price') ? Number(params.get('max_price')) : undefined,
     page: 1,
@@ -50,6 +51,7 @@ export default function Search() {
       category: params.get('category') ?? '',
       condition: params.get('condition') ?? '',
       sale_type: params.get('sale_type') ?? '',
+      sort_by: params.get('sort_by') ?? '',
       min_price: params.get('min_price') ? Number(params.get('min_price')) : undefined,
       max_price: params.get('max_price') ? Number(params.get('max_price')) : undefined,
       page: Number(params.get('page') ?? '1'),
@@ -70,6 +72,7 @@ export default function Search() {
     if (updated.category) p.set('category', updated.category)
     if (updated.condition) p.set('condition', updated.condition)
     if (updated.sale_type) p.set('sale_type', updated.sale_type)
+    if (updated.sort_by) p.set('sort_by', updated.sort_by)
     if (updated.min_price) p.set('min_price', String(updated.min_price))
     if (updated.max_price) p.set('max_price', String(updated.max_price))
     p.set('page', '1')
@@ -78,7 +81,7 @@ export default function Search() {
   }
 
   function clear() {
-    applyFilters({ q: '', category: '', condition: '', sale_type: '', min_price: undefined, max_price: undefined, page: 1, size: 24 })
+    applyFilters({ q: '', category: '', condition: '', sale_type: '', sort_by: '', min_price: undefined, max_price: undefined, page: 1, size: 24 })
   }
 
   const hasFilters = !!(filters.category || filters.condition || filters.sale_type || filters.min_price || filters.max_price)
@@ -202,16 +205,23 @@ export default function Search() {
               Filtrar {hasFilters && `(activos)`}
             </Button>
             <select
+              value={filters.sort_by || (filters.sale_type === 'auction' ? 'auction' : 'recent')}
               className="h-9 border border-ink-200 rounded-lg px-3 text-[13px] text-ink-900 outline-none focus:border-brand bg-white"
               onChange={(e) => {
-                const sort = e.target.value
-                if (sort === 'auction') applyFilters({ ...filters, sale_type: 'auction' })
+                const val = e.target.value
+                if (val === 'auction') {
+                  applyFilters({ ...filters, sale_type: 'auction', sort_by: '' })
+                } else if (val === 'recent') {
+                  applyFilters({ ...filters, sale_type: '', sort_by: '' })
+                } else {
+                  applyFilters({ ...filters, sale_type: '', sort_by: val })
+                }
               }}
             >
               <option value="recent">Más recientes</option>
               <option value="price_asc">Precio: menor a mayor</option>
               <option value="price_desc">Precio: mayor a menor</option>
-              <option value="auction">Subastas: menos tiempo</option>
+              <option value="auction">Subastas</option>
             </select>
           </div>
         </div>

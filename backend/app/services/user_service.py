@@ -30,6 +30,16 @@ async def get_user(user_id: int, session: AsyncSession) -> dict:
     return _public(user)
 
 
+async def update_me(user_id: int, full_name: str, session: AsyncSession) -> dict:
+    user = await session.get(User, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    user.full_name = full_name.strip()
+    session.add(user)
+    await session.commit()
+    return _public(user)
+
+
 async def get_my_transactions(current_user_id: int, session: AsyncSession) -> list:
     orders = (
         await session.execute(

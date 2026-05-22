@@ -8,6 +8,7 @@ import { Button } from '../../components/ui/Button'
 import { Badge } from '../../components/ui/Badge'
 import { useToast } from '../../components/ui/Toast'
 import { ReviewModal } from '../../components/ReviewModal'
+import { EditProfileModal } from '../../components/EditProfileModal'
 import { useProducts } from '../../hooks/useProducts'
 import { usersApi } from '../../api/usersApi'
 import { ordersApi } from '../../api/ordersApi'
@@ -105,6 +106,8 @@ export default function Profile() {
   const [tab, setTab] = useState(0)
   const [reviewTarget, setReviewTarget] = useState<Tx | null>(null)
   const [payingId, setPayingId] = useState<number | null>(null)
+  const [editOpen, setEditOpen] = useState(false)
+  const setStoreUser = useAuthStore((s) => s.setUser)
 
   const { data: listingsData, loading: listingsLoading } = useProducts(
     profileId ? { seller_id: profileId, size: 20 } : {}
@@ -216,7 +219,7 @@ export default function Profile() {
               </div>
             </div>
             {isOwn && (
-              <Button kind="outline" size="sm" icon={<Edit3 size={13} strokeWidth={1.5} />}>
+              <Button kind="outline" size="sm" icon={<Edit3 size={13} strokeWidth={1.5} />} onClick={() => setEditOpen(true)}>
                 Editar
               </Button>
             )}
@@ -341,6 +344,18 @@ export default function Profile() {
       </main>
 
       <div className="md:hidden"><BottomNav /></div>
+
+      {isOwn && user && (
+        <EditProfileModal
+          open={editOpen}
+          onClose={() => setEditOpen(false)}
+          user={user}
+          onSuccess={(updated) => {
+            setUser(updated)
+            setStoreUser(updated)
+          }}
+        />
+      )}
 
       {reviewTarget && (
         <ReviewModal

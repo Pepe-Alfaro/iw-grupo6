@@ -10,6 +10,7 @@ import { useProduct } from '../../hooks/useProduct'
 import { auctionsApi } from '../../api/auctionsApi'
 import { ordersApi } from '../../api/ordersApi'
 import { wishlistApi } from '../../api/wishlistApi'
+
 import { messagesApi } from '../../api/messagesApi'
 import { useAuthStore } from '../../store/authStore'
 import { fmtPrice, conditionLabel } from '../../utils/format'
@@ -90,6 +91,14 @@ export default function ProductDetail() {
       auctionsApi.get(product.id).then((r) => setAuction(r.data)).catch(() => null)
     }
   }, [product])
+
+  useEffect(() => {
+    if (!user || !product) return
+    wishlistApi.list().then((r) => {
+      const found = r.data.find((item) => item.product_id === product.id)
+      if (found) { setWished(true); setWishItemId(found.id) }
+    }).catch(() => null)
+  }, [user, product?.id])
 
   if (loading) return (
     <div className="min-h-screen flex flex-col">

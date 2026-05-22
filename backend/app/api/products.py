@@ -35,12 +35,13 @@ async def list_products(
     min_price: float | None = None,
     max_price: float | None = None,
     seller_id: int | None = None,
+    sort_by: str | None = None,
     page: int = Query(default=1, ge=1),
     size: int = Query(default=20, ge=1, le=100),
     session: AsyncSession = Depends(get_session),
 ):
     return await product_service.list_products(
-        q, category, condition, sale_type, min_price, max_price, seller_id, page, size, session
+        q, category, condition, sale_type, min_price, max_price, seller_id, page, size, session, sort_by
     )
 
 

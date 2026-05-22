@@ -114,6 +114,7 @@ async def list_products(
     page: int,
     size: int,
     session: AsyncSession,
+    sort_by: str | None = None,
 ) -> dict:
     conds = [Product.status == ProductStatus.ACTIVE]
     if q:
@@ -136,6 +137,13 @@ async def list_products(
         )
         conds.append(Product.id.in_(subq))
 
+    if sort_by == "price_asc":
+        order = Product.price.asc()
+    elif sort_by == "price_desc":
+        order = Product.price.desc()
+    else:
+        order = Product.created_at.desc()
+
     total = (
         await session.execute(sa_select(func.count(Product.id)).where(*conds))
     ).scalar_one()
@@ -144,7 +152,7 @@ async def list_products(
         await session.execute(
             sa_select(Product)
             .where(*conds)
-            .order_by(Product.created_at.desc())
+            .order_by(order)
             .offset((page - 1) * size)
             .limit(size)
         )
