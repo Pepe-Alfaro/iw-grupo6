@@ -128,14 +128,13 @@ async def report_product(
         raise HTTPException(status_code=404, detail="Producto no encontrado")
     if product.seller_id == current_user.id:
         raise HTTPException(status_code=400, detail="No puedes reportar tu propio anuncio")
-    mods = (
-        await session.execute(
-            select(User).where(
-                User.role == UserRole.MODERATOR,
-                User.is_active == True,  # noqa: E712
-            )
+    result = await session.execute(
+        select(User).where(
+            User.role == UserRole.MODERATOR,
+            User.is_active == True,  # noqa: E712
         )
-    ).scalars().all()
+    )
+    mods = result.scalars().all()
     notif_title = f"Reporte: {product.title[:60]}"
     notif_body = f"Motivo: {body.reason}"
     if body.comment:
