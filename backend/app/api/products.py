@@ -130,11 +130,16 @@ async def report_product(
         raise HTTPException(status_code=400, detail="No puedes reportar tu propio anuncio")
     mods = (
         await session.execute(
-            select(User).where(User.role == UserRole.MODERATOR, User.is_active == True)  # noqa: E712
+            select(User).where(
+                User.role == UserRole.MODERATOR,
+                User.is_active == True,  # noqa: E712
+            )
         )
     ).scalars().all()
     notif_title = f"Reporte: {product.title[:60]}"
-    notif_body = f"Motivo: {body.reason}" + (f"\n{body.comment}" if body.comment else "")
+    notif_body = f"Motivo: {body.reason}"
+    if body.comment:
+        notif_body += f"\n{body.comment}"
     for mod in mods:
         await notify(mod.id, notif_title, notif_body, session)
     await session.commit()
