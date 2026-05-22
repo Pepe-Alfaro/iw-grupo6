@@ -44,7 +44,7 @@ async def test_get_me_ok(client: AsyncClient):
 @pytest.mark.asyncio
 async def test_get_me_unauthorized(client: AsyncClient):
     r = await client.get("/api/v1/users/me")
-    assert r.status_code == 403
+    assert r.status_code == 401
 
 
 # ─── get user public ──────────────────────────────────────────────────────────
@@ -99,7 +99,7 @@ async def test_update_me_strips_whitespace(client: AsyncClient):
 @pytest.mark.asyncio
 async def test_update_me_unauthorized(client: AsyncClient):
     r = await client.patch("/api/v1/users/me", json={"full_name": "Test"})
-    assert r.status_code == 403
+    assert r.status_code == 401
 
 
 # ─── transactions ─────────────────────────────────────────────────────────────

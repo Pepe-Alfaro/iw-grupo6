@@ -32,6 +32,19 @@ async def create_review(
         raise HTTPException(status_code=409, detail="Ya has valorado este pedido")
 
     reviewed_id = order.seller_id if is_buyer else order.buyer_id
+
+    reviewed_user = await session.get(User, reviewed_id)
+    if reviewed_user:
+        existing_reviews = (
+            (await session.execute(sa_select(Review).where(Review.reviewed_id == reviewed_id)))
+            .scalars()
+            .all()
+        )
+        all_ratings = [r.rating for r in existing_reviews] + [rating]
+        reviewed_user.avg_rating = round(sum(all_ratings) / len(all_ratings), 2)
+        reviewed_user.total_reviews = len(all_ratings)
+        session.add(reviewed_user)
+
     review = Review(
         order_id=order.id,
         reviewer_id=current_user_id,
@@ -46,18 +59,6 @@ async def create_review(
     else:
         order.seller_reviewed = True
     session.add(order)
-
-    reviewed_user = await session.get(User, reviewed_id)
-    if reviewed_user:
-        existing_reviews = (
-            (await session.execute(sa_select(Review).where(Review.reviewed_id == reviewed_id)))
-            .scalars()
-            .all()
-        )
-        all_ratings = [r.rating for r in existing_reviews] + [rating]
-        reviewed_user.avg_rating = round(sum(all_ratings) / len(all_ratings), 2)
-        reviewed_user.total_reviews = len(all_ratings)
-        session.add(reviewed_user)
 
     await session.commit()
     await session.refresh(review)

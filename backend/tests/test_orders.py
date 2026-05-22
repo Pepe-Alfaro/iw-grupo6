@@ -107,7 +107,7 @@ async def test_create_order_requires_auth(client: AsyncClient):
     seller = await _register(client)
     prod = await _product(client, seller)
     r = await client.post("/api/v1/orders", json={"product_id": prod["id"]})
-    assert r.status_code == 403
+    assert r.status_code == 401
 
 
 # ─── get order ────────────────────────────────────────────────────────────────
