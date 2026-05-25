@@ -11,6 +11,7 @@ from app.models.product import (
     ProductStatus,
     SaleType,
 )
+from app.models.report import ProductReport
 from app.models.review import Review
 from app.models.user import User, UserRole
 from app.models.wishlist import WishlistItem
@@ -34,4 +35,5 @@ __all__ = [
     "Review",
     "PriceAlert",
     "Notification",
+    "ProductReport",
 ]
