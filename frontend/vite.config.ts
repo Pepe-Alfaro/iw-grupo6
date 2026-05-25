@@ -5,9 +5,11 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 5173,
+    // Needed for docker-network E2E runs (Playwright hits the dev server via http://frontend:5173)
+    allowedHosts: ['frontend'],
     proxy: {
-      '/api': 'http://localhost:8000',
-      '/uploads': 'http://localhost:8000',
+      '/api': 'http://backend:8000',
+      '/uploads': 'http://backend:8000',
     },
   },
 })
