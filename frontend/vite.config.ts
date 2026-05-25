@@ -1,6 +1,8 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
+const backendUrl = process.env.VITE_API_URL ?? 'http://localhost:8000'
+
 export default defineConfig({
   plugins: [react()],
   server: {
@@ -8,8 +10,8 @@ export default defineConfig({
     watch: { usePolling: true },
     allowedHosts: ['frontend'],
     proxy: {
-      '/api': 'http://backend:8000',
-      '/uploads': 'http://backend:8000',
+      '/api': { target: backendUrl, changeOrigin: true },
+      '/uploads': { target: backendUrl, changeOrigin: true },
     },
   },
 })
