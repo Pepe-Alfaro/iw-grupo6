@@ -85,19 +85,54 @@ function ChatThread({
   const [input, setInput] = useState('')
   const [sending, setSending] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
+  const scrollAreaRef = useRef<HTMLDivElement>(null)
+  const isFirstLoad = useRef(true)
   const name = conv.other_user?.full_name ?? 'Usuario'
 
   const toast = useToast()
 
+  function isNearBottom() {
+    const el = scrollAreaRef.current
+    if (!el) return true
+    return el.scrollHeight - el.scrollTop - el.clientHeight < 120
+  }
+
   useEffect(() => {
-    messagesApi.listMessages(conv.id)
-      .then((r) => setMessages(r.data))
-      .catch(() => toast({ kind: 'error', title: 'Error al cargar mensajes' }))
-    messagesApi.markRead(conv.id).catch(() => null)
+    isFirstLoad.current = true
+    let active = true
+
+    async function load() {
+      try {
+        const r = await messagesApi.listMessages(conv.id)
+        if (!active) return
+        setMessages((prev) => {
+          const lastPrevId = prev[prev.length - 1]?.id
+          const lastNewId = r.data[r.data.length - 1]?.id
+          if (prev.length === r.data.length && lastPrevId === lastNewId) return prev
+          return r.data
+        })
+        messagesApi.markRead(conv.id).catch(() => null)
+      } catch {
+        if (active && isFirstLoad.current) {
+          toast({ kind: 'error', title: 'Error al cargar mensajes' })
+        }
+      }
+    }
+
+    load()
+    const interval = setInterval(load, 3000)
+    return () => {
+      active = false
+      clearInterval(interval)
+    }
   }, [conv.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+    if (messages.length === 0) return
+    if (isFirstLoad.current || isNearBottom()) {
+      bottomRef.current?.scrollIntoView({ behavior: isFirstLoad.current ? 'auto' : 'smooth' })
+    }
+    isFirstLoad.current = false
   }, [messages])
 
   async function send(e: React.FormEvent) {
@@ -133,7 +168,7 @@ function ChatThread({
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-5 py-4 space-y-2 bg-ink-50">
+      <div ref={scrollAreaRef} className="flex-1 overflow-y-auto px-5 py-4 space-y-2 bg-ink-50">
         {messages.length === 0 && (
           <div className="text-center py-12 text-ink-400 text-[13px]">
             Inicia la conversación
@@ -180,17 +215,33 @@ export default function Messages() {
   const [mobileShowChat, setMobileShowChat] = useState(false)
 
   useEffect(() => {
-    messagesApi.listConversations()
-      .then((r) => {
+    let active = true
+
+    async function loadConvs(initial = false) {
+      try {
+        const r = await messagesApi.listConversations()
+        if (!active) return
         setConvs(r.data)
-        const qId = searchParams.get('conv')
-        if (qId) {
-          setActiveId(Number(qId))
-          setMobileShowChat(true)
+        if (initial) {
+          const qId = searchParams.get('conv')
+          if (qId) {
+            setActiveId(Number(qId))
+            setMobileShowChat(true)
+          }
         }
-      })
-      .catch(() => toast({ kind: 'error', title: 'Error al cargar conversaciones' }))
-      .finally(() => setLoading(false))
+      } catch {
+        if (initial) toast({ kind: 'error', title: 'Error al cargar conversaciones' })
+      } finally {
+        if (initial) setLoading(false)
+      }
+    }
+
+    loadConvs(true)
+    const interval = setInterval(() => loadConvs(false), 5000)
+    return () => {
+      active = false
+      clearInterval(interval)
+    }
   }, [searchParams]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const activeConv = convs.find((c) => c.id === activeId)
