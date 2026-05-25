@@ -723,8 +723,8 @@ async def seed() -> None:
                     )
                 ).all()
                 base_time = datetime.now(UTC).replace(tzinfo=None) - timedelta(days=c["days_ago"])
-                for i, (msg, (sender_idx, content)) in enumerate(
-                    zip(msgs, c["messages"])
+                for i, (msg, (_sender_idx, content)) in enumerate(
+                    zip(msgs, c["messages"], strict=False)
                 ):
                     msg.content = encrypt(content)
                     msg.sent_at = base_time + timedelta(minutes=i * 12)
