@@ -718,9 +718,7 @@ async def seed() -> None:
             if exists:
                 # Re-encrypt messages in case SECRET_KEY changed
                 msgs = (
-                    await session.exec(
-                        select(Message).where(Message.conversation_id == exists.id)
-                    )
+                    await session.exec(select(Message).where(Message.conversation_id == exists.id))
                 ).all()
                 base_time = datetime.now(UTC).replace(tzinfo=None) - timedelta(days=c["days_ago"])
                 for i, (msg, (_sender_idx, content)) in enumerate(

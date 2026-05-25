@@ -84,12 +84,16 @@ async def _get_user_id(client: AsyncClient, token: str) -> int:
 
 def _forge_none_alg_token(user_id: int) -> str:
     """JWT con alg=none: sin firma. Ataque clásico de bypass de verificación."""
-    header = base64.urlsafe_b64encode(
-        json.dumps({"alg": "none", "typ": "JWT"}).encode()
-    ).rstrip(b"=").decode()
-    payload = base64.urlsafe_b64encode(
-        json.dumps({"sub": str(user_id), "type": "access"}).encode()
-    ).rstrip(b"=").decode()
+    header = (
+        base64.urlsafe_b64encode(json.dumps({"alg": "none", "typ": "JWT"}).encode())
+        .rstrip(b"=")
+        .decode()
+    )
+    payload = (
+        base64.urlsafe_b64encode(json.dumps({"sub": str(user_id), "type": "access"}).encode())
+        .rstrip(b"=")
+        .decode()
+    )
     return f"{header}.{payload}."
 
 
@@ -165,30 +169,32 @@ async def test_jwt_esquema_incorrecto_rechazado(client: AsyncClient):
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("method,path", [
-    ("GET",    "/api/v1/moderation/alerts"),
-    ("GET",    "/api/v1/moderation/products"),
-    ("PATCH",  "/api/v1/moderation/alerts/1"),
-    ("DELETE", "/api/v1/moderation/products/1"),
-])
-async def test_moderacion_sin_token_devuelve_401(
-    client: AsyncClient, method: str, path: str
-):
+@pytest.mark.parametrize(
+    "method,path",
+    [
+        ("GET", "/api/v1/moderation/alerts"),
+        ("GET", "/api/v1/moderation/products"),
+        ("PATCH", "/api/v1/moderation/alerts/1"),
+        ("DELETE", "/api/v1/moderation/products/1"),
+    ],
+)
+async def test_moderacion_sin_token_devuelve_401(client: AsyncClient, method: str, path: str):
     """Todos los endpoints de moderación rechazan peticiones anónimas con 401."""
     r = await client.request(method, path)
     assert r.status_code == 401
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("method,path", [
-    ("GET",    "/api/v1/moderation/alerts"),
-    ("GET",    "/api/v1/moderation/products"),
-    ("PATCH",  "/api/v1/moderation/alerts/1"),
-    ("DELETE", "/api/v1/moderation/products/1"),
-])
-async def test_moderacion_rol_cliente_devuelve_403(
-    client: AsyncClient, method: str, path: str
-):
+@pytest.mark.parametrize(
+    "method,path",
+    [
+        ("GET", "/api/v1/moderation/alerts"),
+        ("GET", "/api/v1/moderation/products"),
+        ("PATCH", "/api/v1/moderation/alerts/1"),
+        ("DELETE", "/api/v1/moderation/products/1"),
+    ],
+)
+async def test_moderacion_rol_cliente_devuelve_403(client: AsyncClient, method: str, path: str):
     """Un usuario con rol CLIENT no puede acceder a ningún endpoint de moderación."""
     token = await _register(client)
     r = await client.request(method, path, headers=_auth(token))
@@ -388,22 +394,34 @@ async def test_idor_toggle_notify_wishlist_ajena_403(client: AsyncClient):
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("method,path,body", [
-    ("POST", "/api/v1/products", {
-        "title": "x", "description": "x", "condition": "good",
-        "sale_type": "fixed", "price": "10.00", "categories": ["c"], "image_urls": [],
-    }),
-    ("GET",    "/api/v1/wishlist",              None),
-    ("POST",   "/api/v1/wishlist",              {"search_query": "x"}),
-    ("GET",    "/api/v1/conversations",         None),
-    ("POST",   "/api/v1/conversations",         {"other_user_id": 1}),
-    ("POST",   "/api/v1/orders",               {"product_id": 1}),
-    ("GET",    "/api/v1/users/me",             None),
-    ("PATCH",  "/api/v1/users/me",             {"full_name": "x"}),
-    ("DELETE", "/api/v1/users/me",             None),
-    ("GET",    "/api/v1/users/me/transactions", None),
-    ("POST",   "/api/v1/auctions/1/bid",       {"amount": "10.00"}),
-])
+@pytest.mark.parametrize(
+    "method,path,body",
+    [
+        (
+            "POST",
+            "/api/v1/products",
+            {
+                "title": "x",
+                "description": "x",
+                "condition": "good",
+                "sale_type": "fixed",
+                "price": "10.00",
+                "categories": ["c"],
+                "image_urls": [],
+            },
+        ),
+        ("GET", "/api/v1/wishlist", None),
+        ("POST", "/api/v1/wishlist", {"search_query": "x"}),
+        ("GET", "/api/v1/conversations", None),
+        ("POST", "/api/v1/conversations", {"other_user_id": 1}),
+        ("POST", "/api/v1/orders", {"product_id": 1}),
+        ("GET", "/api/v1/users/me", None),
+        ("PATCH", "/api/v1/users/me", {"full_name": "x"}),
+        ("DELETE", "/api/v1/users/me", None),
+        ("GET", "/api/v1/users/me/transactions", None),
+        ("POST", "/api/v1/auctions/1/bid", {"amount": "10.00"}),
+    ],
+)
 async def test_endpoint_protegido_rechaza_peticion_anonima(
     client: AsyncClient, method: str, path: str, body: dict | None
 ):
@@ -427,7 +445,6 @@ async def test_vendedor_no_puede_comprar_su_propio_anuncio(client: AsyncClient):
         headers=_auth(token),
     )
     assert r.status_code == 400
-
 
 
 @pytest.mark.asyncio
